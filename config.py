@@ -1,0 +1,1 @@
+DATADIR = 'd:/data/indec'
