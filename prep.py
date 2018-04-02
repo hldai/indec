@@ -1,7 +1,9 @@
 import re
 import os
+import json
 import pandas as pd
 from config import *
+import tfidf
 
 
 def __fix_src_data():
@@ -32,10 +34,32 @@ def __gen_sep_content_file(doc_file, dst_content_file):
             fout.write('{}\n'.format(text))
 
 
+def __gen_name_to_doc_file():
+    entity_names = pd.read_csv(entity_names_file, header=None).as_matrix().flatten()
+    df = pd.read_csv(doc_file, na_filter=False)
+
+    name_doc_dict = {name: list() for name in entity_names}
+    for idx, content in enumerate(df['content']):
+        for name in entity_names:
+            if name in content:
+                name_doc_dict[name].append(idx)
+
+    fout = open(name_doc_file, 'w', encoding='utf-8', newline='\n')
+    for name, docs in name_doc_dict.items():
+        fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
+    fout.close()
+
+
 src_doc_file = os.path.join(DATADIR, 'bizmsg.csv')
 doc_file = os.path.join(DATADIR, 'docs-14k.csv')
 # title_file = os.path.join(DATADIR, 'docs-14k-titles.csv')
 content_file = os.path.join(DATADIR, 'docs-14k-content.csv')
+seg_content_file = os.path.join(DATADIR, 'docs-14k-content-seg.txt')
+df_file = os.path.join(DATADIR, 'docs-14k-words-df.txt')
+entity_names_file = os.path.join(DATADIR, 'entities.txt')
+name_doc_file = os.path.join(DATADIR, 'name-doc.txt')
 
 # __fix_src_data()
-__gen_sep_content_file(doc_file, content_file)
+# __gen_sep_content_file(doc_file, content_file)
+# tfidf.gen_df(seg_content_file, df_file)
+__gen_name_to_doc_file()

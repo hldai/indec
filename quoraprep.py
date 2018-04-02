@@ -141,7 +141,7 @@ def __get_user_answers_from_profile():
                     break
             if full_answer is not None:
                 user_qa_obj = {'username': user_folder, 'question': q, 'answer': full_answer}
-                fout.write('{}\n'.format(json.dumps(user_qa_obj)))
+                fout.write('{}\n'.format(json.dumps(user_qa_obj, ensure_ascii=False)))
             # if full_answer is None:
             #     print(a)
             #     for cand_answer in answer_list:
