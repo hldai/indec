@@ -44,18 +44,18 @@ def __gen_name_to_doc_file():
             if name in content:
                 name_doc_dict[name].append(idx)
 
-    fout = open(NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
+    fout = open(WC_NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
     for name, docs in name_doc_dict.items():
         fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
     fout.close()
 
 
-src_doc_file = os.path.join(DATADIR, 'bizmsg.csv')
-doc_file = os.path.join(DATADIR, 'docs-14k.csv')
+src_doc_file = os.path.join(WC_DATADIR, 'bizmsg.csv')
+doc_file = os.path.join(WC_DATADIR, 'docs-14k.csv')
 # title_file = os.path.join(DATADIR, 'docs-14k-titles.csv')
-content_file = os.path.join(DATADIR, 'docs-14k-content.csv')
-seg_content_file = os.path.join(DATADIR, 'docs-14k-content-seg.txt')
-entity_names_file = os.path.join(DATADIR, 'entities.txt')
+content_file = os.path.join(WC_DATADIR, 'docs-14k-content.csv')
+seg_content_file = os.path.join(WC_DATADIR, 'docs-14k-content-seg.txt')
+entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # name_doc_file = os.path.join(DATADIR, 'name-doc.txt')
 
 # __fix_src_data()

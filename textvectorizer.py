@@ -2,12 +2,15 @@ import pandas as pd
 import numpy as np
 from scipy import sparse
 from collections import Counter
+from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 
 
-def gen_df(docs_file, dst_file):
+def gen_df(docs_file, dst_file, to_lower=False):
     f = open(docs_file, encoding='utf-8')
     df_dict = dict()
     for line in f:
+        if to_lower:
+            line = line.lower()
         words = set(line.strip().split(' '))
         for w in words:
             cnt = df_dict.get(w, 0)
@@ -21,12 +24,16 @@ def gen_df(docs_file, dst_file):
 
 
 class TfIdf:
-    def __init__(self, df_file, min_df, max_df, n_docs):
+    def __init__(self, df_file, min_df, max_df, n_docs, remove_stopwords=False):
         df = pd.read_csv(df_file)
         df = df[df['cnt'].between(min_df, max_df)]
 
-        self.word_dict = {w: (i, np.log(float(n_docs) / cnt)) for i, (w, cnt) in enumerate(
-            df.itertuples(False, None))}
+        if remove_stopwords:
+            self.word_dict = {w: (i, np.log(float(n_docs) / cnt)) for i, (w, cnt) in enumerate(
+                df.itertuples(False, None)) if w not in ENGLISH_STOP_WORDS}
+        else:
+            self.word_dict = {w: (i, np.log(float(n_docs) / cnt)) for i, (w, cnt) in enumerate(
+                df.itertuples(False, None))}
         self.n_words = len(self.word_dict)
         # self.word_idf_dict = {w: np.log(float(n_docs) / cnt) for w, cnt in df.itertuples(False, None)}
 

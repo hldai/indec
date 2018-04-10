@@ -1,5 +1,6 @@
 from config import *
 from collections import namedtuple
+import textvectorizer
 import re
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -168,6 +169,39 @@ def __sort_questions():
     fout.close()
 
 
+def __answer_text_to_lower():
+    f = open(QUORA_ANSWER_TOK_FILE, encoding='utf-8')
+    fout = open(QUORA_ANSWER_TOK_LOWER_FILE, 'w', encoding='utf-8', newline='\n')
+    for line in f:
+        fout.write(line.lower())
+    f.close()
+    fout.close()
+
+
+def __gen_name_to_doc_file():
+    df = pd.read_csv(QUORA_NER_NAME_CNT_FILE)
+    df = df[df['cnt'] > 2]
+    entity_names = df.as_matrix(['name']).flatten()
+    print(len(entity_names), 'names')
+
+    name_doc_dict = {name: list() for name in entity_names}
+
+    f = open(QUORA_DATA_FILE, encoding='utf-8')
+    for i, line in enumerate(f):
+        qa_obj = json.loads(line)
+        for name in entity_names:
+            if name in qa_obj['answer']:
+                name_doc_dict[name].append(i)
+
+        if (i + 1) % 10000 == 0:
+            print(i + 1)
+
+    fout = open(QUORA_NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
+    for name, docs in name_doc_dict.items():
+        fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
+    fout.close()
+
+
 ner_result_file = os.path.join(QUORA_DATA_DIR, 'answer-text-ner.txt')
 answer_text_file = os.path.join(QUORA_DATA_DIR, 'answer-text.txt')
 qa_pair_dir = os.path.join(QUORA_DATA_DIR, 'origin_data')
@@ -178,4 +212,7 @@ ner_result_stat_file = os.path.join(QUORA_DATA_DIR, 'ner-name-cnts.txt')
 # __merge_qa_pairs()
 # __get_user_answers_from_profile()
 # __gen_answer_text_file()
-__check_ner_result()
+# __check_ner_result()
+# __answer_text_to_lower()
+# textvectorizer.gen_df(QUORA_ANSWER_TOK_FILE, QUORA_DF_FILE, True)
+__gen_name_to_doc_file()

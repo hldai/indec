@@ -9,7 +9,7 @@ import utils
 
 def __load_entity_name_to_doc():
     name_doc_dict = dict()
-    f = open(NAME_DOC_FILE, encoding='utf-8')
+    f = open(WC_NAME_DOC_FILE, encoding='utf-8')
     for line in f:
         obj = json.loads(line)
         name_doc_dict[obj['entity_name']] = obj['docs']
@@ -38,8 +38,8 @@ def __check_dists(x, contents):
 
 
 def __entity_disamb():
-    tv = textvectorizer.TfIdf(DF_FILE, 5, 62000, 14357)
-    all_doc_contents = utils.read_lines_to_list(SEG_DOC_CONTENT_FILE)
+    tv = textvectorizer.TfIdf(WC_DF_FILE, 5, 62000, 14357)
+    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
 
     eps = 0.55
     min_samples = 20
@@ -74,7 +74,7 @@ def __entity_disamb():
 
 
 def __gen_docs_with_specific_name():
-    all_doc_contents = utils.read_lines_to_list(DOC_CONTENT_FILE)
+    all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_FILE)
     name_doc_dict = __load_entity_name_to_doc()
     doc_idxs = name_doc_dict['曹操']
     contents = [all_doc_contents[idx] for idx in doc_idxs]
@@ -85,6 +85,6 @@ def __gen_docs_with_specific_name():
     fout.close()
 
 
-dbscan_result_dir = os.path.join(DATADIR, 'dbscan')
+dbscan_result_dir = os.path.join(WC_DATADIR, 'dbscan')
 # __gen_docs_with_specific_name()
 __entity_disamb()
