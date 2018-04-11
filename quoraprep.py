@@ -1,10 +1,11 @@
 from config import *
 from collections import namedtuple
-import textvectorizer
 import re
 from bs4 import BeautifulSoup
 import pandas as pd
 import json
+import utils
+import textvectorizer
 
 
 QuoraQA = namedtuple('QuoraQA', ['id', 'question', 'answer_score', 'answer_text', 'username',
@@ -41,21 +42,28 @@ def __gen_answer_text_file():
     fout.close()
 
 
-def __check_ner_result():
-    name_dict = dict()
+def __process_ner_result():
+    name_doc_dict = dict()
     f = open(ner_result_file, encoding='utf-8')
     for line in f:
         vals = line.strip().split('\t')
-        cnt = name_dict.get(vals[4], 0)
-        name_dict[vals[4]] = cnt + 1
+        docs = name_doc_dict.get(vals[4], set())
+        if not docs:
+            name_doc_dict[vals[4]] = docs
+        docs.add(int(vals[0]) - 1)
     f.close()
 
-    tups = list(name_dict.items())
+    tups = [(name, len(docs)) for name, docs in name_doc_dict.items()]
     tups.sort(key=lambda x: -x[1])
-    with open(ner_result_stat_file, 'w', encoding='utf-8', newline='\n') as fout:
+    with open(QUORA_NER_NAME_CNT_FILE, 'w', encoding='utf-8', newline='\n') as fout:
         pd.DataFrame(tups, columns=['name', 'cnt']).to_csv(fout, index=False)
-    # for k, v in tups:
-    #     print(k, v)
+
+    fout = open(QUORA_NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
+    for name, docs in name_doc_dict.items():
+        docs = list(docs)
+        docs.sort()
+        fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
+    fout.close()
 
 
 def __get_qa_pair_from_file(filename):
@@ -178,27 +186,44 @@ def __answer_text_to_lower():
     fout.close()
 
 
-def __gen_name_to_doc_file():
-    df = pd.read_csv(QUORA_NER_NAME_CNT_FILE)
-    df = df[df['cnt'] > 2]
-    entity_names = df.as_matrix(['name']).flatten()
-    print(len(entity_names), 'names')
+# def __gen_name_to_doc_file():
+#     df = pd.read_csv(QUORA_NER_NAME_CNT_FILE)
+#     df = df[df['cnt'] > 5]
+#     entity_names = df.as_matrix(['name']).flatten()
+#     print(len(entity_names), 'names')
+#
+#     name_doc_dict = {name: list() for name in entity_names}
+#
+#     df_ner = pd.read_csv(QUORA_ANSWER_NER_FILE, sep='\t', header=None, na_filter=False)
+#     print(df.shape)
+#     print(df.head())
 
-    name_doc_dict = {name: list() for name in entity_names}
+    # f = open(QUORA_DATA_FILE, encoding='utf-8')
+    # for i, line in enumerate(f):
+    #     qa_obj = json.loads(line)
+    #     for name in entity_names:
+    #         if name in qa_obj['answer']:
+    #             name_doc_dict[name].append(i)
+    #
+    #     if (i + 1) % 10000 == 0:
+    #         print(i + 1)
+    #
+    # fout = open(QUORA_NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
+    # for name, docs in name_doc_dict.items():
+    #     fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
+    # fout.close()
 
-    f = open(QUORA_DATA_FILE, encoding='utf-8')
-    for i, line in enumerate(f):
-        qa_obj = json.loads(line)
-        for name in entity_names:
-            if name in qa_obj['answer']:
-                name_doc_dict[name].append(i)
 
-        if (i + 1) % 10000 == 0:
-            print(i + 1)
-
-    fout = open(QUORA_NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
-    for name, docs in name_doc_dict.items():
-        fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
+def __gen_docs_with_specific_name():
+    name = 'DC'
+    all_doc_contents = utils.read_lines_to_list(QUORA_ANSWER_CONTENT_FILE)
+    name_doc_dict = utils.load_entity_name_to_doc_file(QUORA_NAME_DOC_FILE)
+    doc_idxs = name_doc_dict[name]
+    contents = [all_doc_contents[idx] for idx in doc_idxs]
+    print(len(contents), 'docs')
+    fout = open('d:/data/quora/{}-docs.txt'.format(name), 'w', encoding='utf-8', newline='\n')
+    for text in contents:
+        fout.write('{}\n'.format(text.strip()))
     fout.close()
 
 
@@ -208,11 +233,10 @@ qa_pair_dir = os.path.join(QUORA_DATA_DIR, 'origin_data')
 user_profile_dir = os.path.join(QUORA_DATA_DIR, 'quora-raw/profiles')
 qa_pairs_file = os.path.join(QUORA_DATA_DIR, 'qa-pairs.txt')
 quora_user_qa_file = os.path.join(QUORA_DATA_DIR, 'quora-user-qa.json')
-ner_result_stat_file = os.path.join(QUORA_DATA_DIR, 'ner-name-cnts.txt')
 # __merge_qa_pairs()
 # __get_user_answers_from_profile()
 # __gen_answer_text_file()
-# __check_ner_result()
+# __process_ner_result()
 # __answer_text_to_lower()
 # textvectorizer.gen_df(QUORA_ANSWER_TOK_FILE, QUORA_DF_FILE, True)
-__gen_name_to_doc_file()
+__gen_docs_with_specific_name()

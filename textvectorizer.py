@@ -29,8 +29,12 @@ class TfIdf:
         df = df[df['cnt'].between(min_df, max_df)]
 
         if remove_stopwords:
-            self.word_dict = {w: (i, np.log(float(n_docs) / cnt)) for i, (w, cnt) in enumerate(
-                df.itertuples(False, None)) if w not in ENGLISH_STOP_WORDS}
+            word_cnt = 0
+            self.word_dict = dict()
+            for w, cnt in df.itertuples(False, None):
+                if w not in ENGLISH_STOP_WORDS:
+                    self.word_dict[w] = (word_cnt, np.log(float(n_docs) / cnt))
+                    word_cnt += 1
         else:
             self.word_dict = {w: (i, np.log(float(n_docs) / cnt)) for i, (w, cnt) in enumerate(
                 df.itertuples(False, None))}

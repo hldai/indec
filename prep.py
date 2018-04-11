@@ -4,6 +4,7 @@ import json
 import pandas as pd
 from config import *
 import textvectorizer
+import utils
 
 
 def __fix_src_data():
@@ -50,6 +51,18 @@ def __gen_name_to_doc_file():
     fout.close()
 
 
+def __gen_docs_with_specific_name():
+    all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_FILE)
+    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
+    doc_idxs = name_doc_dict['曹操']
+    contents = [all_doc_contents[idx] for idx in doc_idxs]
+    print(len(contents), 'docs')
+    fout = open('d:/data/indec/cc.txt', 'w', encoding='utf-8', newline='\n')
+    for text in contents:
+        fout.write('{}\n'.format(text.strip()))
+    fout.close()
+
+
 src_doc_file = os.path.join(WC_DATADIR, 'bizmsg.csv')
 doc_file = os.path.join(WC_DATADIR, 'docs-14k.csv')
 # title_file = os.path.join(DATADIR, 'docs-14k-titles.csv')
@@ -62,3 +75,4 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # __gen_sep_content_file(doc_file, content_file)
 # textvectorizer.gen_df(seg_content_file, DF_FILE)
 # __gen_name_to_doc_file()
+__gen_docs_with_specific_name()
