@@ -5,7 +5,11 @@ from collections import Counter
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 
 
-def gen_df(docs_file, dst_file, to_lower=False):
+SPECIAL_WORDS = frozenset([
+    '-lsb-', '-rsb-', '*', ';', '#', '·', '$', '`', '>', '%', '\\', '/', '--', '&'])
+
+
+def gen_df(docs_file, dst_file, to_lower=False, rm_one_time_words=True):
     f = open(docs_file, encoding='utf-8')
     df_dict = dict()
     for line in f:
@@ -20,7 +24,54 @@ def gen_df(docs_file, dst_file, to_lower=False):
     tups = [(w, cnt) for w, cnt in df_dict.items()]
     tups.sort(key=lambda x: -x[1])
     with open(dst_file, 'w', encoding='utf-8', newline='\n') as fout:
-        pd.DataFrame(tups, columns=['word', 'cnt']).to_csv(fout, index=False)
+        df = pd.DataFrame(tups, columns=['word', 'cnt'])
+        if rm_one_time_words:
+            df = df[df['cnt'] > 1]
+        df.to_csv(fout, index=False)
+
+
+class CountVectorizer:
+    def __init__(self, df_file, min_df, max_df, remove_stopwords=False, remove_special_words=True):
+        df = pd.read_csv(df_file)
+        df = df[df['cnt'].between(min_df, max_df)]
+
+        self.vocab = list()
+        for w, cnt in df.itertuples(False, None):
+            if remove_stopwords and w in ENGLISH_STOP_WORDS:
+                continue
+            if remove_special_words and w in SPECIAL_WORDS:
+                continue
+            self.vocab.append(w)
+
+        self.word_dict = {w: i for i, w in enumerate(self.vocab)}
+        self.n_words = len(self.word_dict)
+
+    def get_vec(self, text: str):
+        words = text.strip().split(' ')
+        words_counter = Counter(words)
+        data, rows, cols = list(), list(), list()
+        for w, cnt in words_counter.items():
+            word_idx = self.word_dict.get(w, None)
+            if word_idx is None:
+                continue
+            rows.append(0)
+            cols.append(word_idx)
+            data.append(cnt)
+        return sparse.csr_matrix((data, (rows, cols)), (1, self.n_words))
+
+    def get_vecs(self, text_list):
+        data, rows, cols = list(), list(), list()
+        for i, text in enumerate(text_list):
+            words = text.strip().split(' ')
+            words_counter = Counter(words)
+            for w, cnt in words_counter.items():
+                word_idx = self.word_dict.get(w, None)
+                if word_idx is None:
+                    continue
+                rows.append(i)
+                cols.append(word_idx)
+                data.append(cnt)
+        return sparse.csr_matrix((data, (rows, cols)), (len(text_list), self.n_words))
 
 
 class TfIdf:
