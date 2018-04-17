@@ -31,15 +31,23 @@ def gen_df(docs_file, dst_file, to_lower=False, rm_one_time_words=True):
 
 
 class CountVectorizer:
-    def __init__(self, df_file, min_df, max_df, remove_stopwords=False, remove_special_words=True):
+    def __init__(self, df_file, min_df, max_df, remove_stopwords=False, remove_special_words=True, docs=None):
         df = pd.read_csv(df_file)
         df = df[df['cnt'].between(min_df, max_df)]
+
+        words_exist = set()
+        if docs is not None:
+            for doc in docs:
+                for w in doc:
+                    words_exist.add(w)
 
         self.vocab = list()
         for w, cnt in df.itertuples(False, None):
             if remove_stopwords and w in ENGLISH_STOP_WORDS:
                 continue
             if remove_special_words and w in SPECIAL_WORDS:
+                continue
+            if docs is not None and w not in words_exist:
                 continue
             self.vocab.append(w)
 
