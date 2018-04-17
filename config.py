@@ -17,3 +17,4 @@ QUORA_ANSWER_TOK_LOWER_FILE = os.path.join(QUORA_DATA_DIR, 'answer-text-tok-low.
 QUORA_DF_FILE = os.path.join(QUORA_DATA_DIR, 'quora-answers-df.txt')
 QUORA_NER_NAME_CNT_FILE = os.path.join(QUORA_DATA_DIR, 'ner-name-cnts.txt')
 QUORA_NAME_DOC_FILE = os.path.join(QUORA_DATA_DIR, 'name-doc.txt')
+QUORA_NUM_TOTAL_DOCS = 143479

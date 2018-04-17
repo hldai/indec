@@ -5,7 +5,7 @@ from config import *
 import utils
 
 
-class UrnLDA:
+class NegUrnLDA:
     def __init__(self, alpha=5.0, beta=0.1, n_iter=50, k=10):
         self.alpha = alpha
         self.beta = beta
@@ -211,7 +211,7 @@ def __check_topics():
     #     print(' '.join(['{:.8f}'.format(float(v)) for v in r]))
 
 
-urnlda = UrnLDA(alpha=0.1, n_iter=50, k=10)
+urnlda = NegUrnLDA(alpha=0.1, n_iter=50, k=10)
 docs, vocab, word_idfs = process_quora()
 urnlda.fit(docs, vocab, word_idfs)
 
