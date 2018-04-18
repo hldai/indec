@@ -215,7 +215,7 @@ def __answer_text_to_lower():
 
 
 def __gen_docs_with_specific_name():
-    name = 'DC'
+    name = 'dc'
     all_doc_contents = utils.read_lines_to_list(QUORA_ANSWER_CONTENT_FILE)
     name_doc_dict = utils.load_entity_name_to_doc_file(QUORA_NAME_DOC_FILE)
     doc_idxs = name_doc_dict[name]
@@ -239,4 +239,4 @@ quora_user_qa_file = os.path.join(QUORA_DATA_DIR, 'quora-user-qa.json')
 # __process_ner_result()
 # __answer_text_to_lower()
 # textvectorizer.gen_df(QUORA_ANSWER_TOK_FILE, QUORA_DF_FILE, True)
-# __gen_docs_with_specific_name()
+__gen_docs_with_specific_name()

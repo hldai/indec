@@ -63,10 +63,11 @@ class CountVectorizer:
             data.append(cnt)
         return sparse.csr_matrix((data, (rows, cols)), (1, self.n_words))
 
-    def get_vecs(self, text_list):
+    def get_vecs(self, text_list, normalize=False):
         data, rows, cols = list(), list(), list()
         for i, text in enumerate(text_list):
             words = text.strip().split(' ')
+            n_words = len(words)
             words_counter = Counter(words)
             for w, cnt in words_counter.items():
                 word_idx = self.word_dict.get(w, None)
@@ -74,7 +75,10 @@ class CountVectorizer:
                     continue
                 rows.append(i)
                 cols.append(word_idx)
-                data.append(cnt)
+                if normalize:
+                    data.append(cnt / n_words)
+                else:
+                    data.append(cnt)
         return sparse.csr_matrix((data, (rows, cols)), (len(text_list), self.n_words))
 
 

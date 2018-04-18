@@ -14,3 +14,11 @@ def load_entity_name_to_doc_file(filename):
         name_doc_dict[obj['entity_name']] = obj['docs']
     f.close()
     return name_doc_dict
+
+
+def get_word_set(docs):
+    words = set()
+    for doc in docs:
+        for w in doc:
+            words.add(w)
+    return words
