@@ -206,10 +206,11 @@ def __check_topics():
     #     print(' '.join(['{:.8f}'.format(float(v)) for v in r]))
 
 
-urnlda = UrnLDA(alpha=0.1, n_iter=50, k=10)
-docs, vocab, word_idfs = process_quora()
-urnlda.fit(docs, vocab, word_idfs)
+if __name__ == '__main__':
+    urnlda = UrnLDA(alpha=0.1, n_iter=50, k=10)
+    docs, vocab, word_idfs = process_quora()
+    urnlda.fit(docs, vocab, word_idfs)
 
-test_vocab_file = os.path.join(QUORA_DATA_DIR, 'dc_vocab.txt')
-test_topic_file = os.path.join(QUORA_DATA_DIR, 'dc_topics.txt')
-urnlda.save(test_vocab_file, test_topic_file)
+    test_vocab_file = os.path.join(QUORA_DATA_DIR, 'dc_vocab.txt')
+    test_topic_file = os.path.join(QUORA_DATA_DIR, 'dc_topics.txt')
+    urnlda.save(test_vocab_file, test_topic_file)
