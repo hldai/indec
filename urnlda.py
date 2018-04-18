@@ -20,7 +20,6 @@ class UrnLDA:
         self.A = None
         self.p_co = None
         self.vocab = None
-        self.word_probs = None
 
     def fit(self, docs, vocab, word_idfs):
         self.n_docs = len(docs)
@@ -117,9 +116,6 @@ class UrnLDA:
             words = set(doc)
             for w in words:
                 word_docs[w].add(i)
-
-        self.word_probs = np.asarray([len(docs) for docs in word_docs], np.float32)
-        self.word_probs /= np.sum(self.word_probs)
 
         self.A = np.zeros((self.n_words, self.n_words), np.float32)
         # lambda_v = np.zeros(self.n_words, np.float32)

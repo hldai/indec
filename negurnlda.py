@@ -11,13 +11,13 @@ class NegUrnLDA:
         self.beta = beta
         self.n_iter = n_iter
         self.Z = list()
+        self.Zn = list()
         self.k = k
         self.n_docs = 0
         self.n_words = 0
         self.ndz = None
         self.nzw = None
         self.nz = None
-        self.A = None
         self.p_co = None
         self.vocab = None
         self.word_probs = None
@@ -30,10 +30,10 @@ class NegUrnLDA:
         self.nzw = np.zeros([self.k, self.n_words]) + self.beta
         self.nz = np.zeros([self.k]) + self.n_words * self.beta
 
-        self.__init_with_data(docs, word_idfs)
+        neg_docs = self.__init_with_data(docs, word_idfs)
 
         for i in range(0, self.n_iter):
-            self.__gibbs_sampling(docs)
+            self.__gibbs_sampling(docs, neg_docs)
             print(time.strftime('%X'), "Iteration: ", i, " Completed", " Perplexity: ", self.__perplexity(docs))
 
         n_topic_words_disp = 10
@@ -42,7 +42,7 @@ class NegUrnLDA:
             pw = self.nzw[z, :] / np.sum(self.nzw[z, :])
             # print([vocab[w] for w in top_widxs])
             for w in top_widxs:
-                print('{:.6f}*{}'.format(pw[w], self.vocab[w]), end='\t')
+                print('{:.5f}*{}'.format(pw[w], self.vocab[w]), end='\t')
             print()
         self.__coh_assess()
 
@@ -74,28 +74,45 @@ class NegUrnLDA:
                 p += pw1[w1] * pw2[w2] * self.p_co[w1][w2]
         return p
 
-    def __gibbs_sampling(self, docs):
+    def __gibbs_sampling(self, docs, neg_docs):
         for d, doc_words in enumerate(docs):
             for pos, w in enumerate(doc_words):
                 z = self.Z[d][pos]
 
                 self.ndz[d, z] -= 1
-                self.nzw[z, :] -= self.A[:, w]
-                # self.nzw[z, w] -= 1
+                self.nzw[z, w] = max(self.nzw[z, w] - 1, 0)
                 self.nz[z] -= 1
 
                 pz = np.divide(np.multiply(self.ndz[d, :], self.nzw[:, w]), self.nz)
                 # print(pz, pz.sum())
+                # print(pz, sum(pz / pz.sum()))
                 z = np.random.multinomial(1, pz / pz.sum()).argmax()
                 self.Z[d][pos] = z
 
                 self.ndz[d, z] += 1
-                self.nzw[z, :] += self.A[:, w]
-                # self.nzw[z, w] += 1
+                self.nzw[z, w] += 1
                 self.nz[z] += 1
 
+            for pos, w in enumerate(neg_docs[d]):
+                z = self.Zn[d][pos]
+
+                self.ndz[d, z] -= 1
+                self.nzw[z, w] += 1
+                self.nz[z] -= 1
+
+                pz = np.divide(np.multiply(self.ndz[d, :], self.nzw[:, w]), self.nz)
+                # print(pz, pz.sum())
+                pzn = 1 - pz / pz.sum()
+                z = np.random.multinomial(1, pzn / pzn.sum()).argmax()
+                self.Zn[d][pos] = z
+
+                self.ndz[d, z] += 1
+                self.nzw[z, w] = max(self.beta, self.nzw[z, w] - 1)
+                self.nz[z] += 1
+
+    # TODO what a mess
     def __init_with_data(self, docs, word_idfs):
-        self.__init_A(docs, word_idfs)
+        neg_docs = self.__init_cooccur(docs, word_idfs)
         for d, doc in enumerate(docs):
             z_curdoc = []
             for w in doc:
@@ -103,13 +120,23 @@ class NegUrnLDA:
                 z_tmp = np.random.multinomial(1, pz / pz.sum()).argmax()
                 z_curdoc.append(z_tmp)
                 self.ndz[d, z_tmp] += 1
-                for v in range(self.n_words):
-                    self.nzw[z_tmp, v] += self.A[v, w]
-                # self.nzw[z_tmp, w] += 1
+                self.nzw[z_tmp, w] += 1
                 self.nz[z_tmp] += 1
             self.Z.append(z_curdoc)
 
-    def __init_A(self, docs, word_idfs):
+            z_curdoc = []
+            for w in neg_docs[d]:
+                pz = np.divide(np.multiply(self.ndz[d, :], self.nzw[:, w]), self.nz)
+                pzn = 1 - pz / pz.sum()
+                z_tmp = np.random.multinomial(1, pzn / pzn.sum()).argmax()
+                z_curdoc.append(z_tmp)
+                self.ndz[d, z_tmp] += 1
+                self.nzw[z_tmp, w] = max(self.beta, self.nzw[z_tmp, w] - 1)
+                self.nz[z_tmp] += 1
+            self.Zn.append(z_curdoc)
+        return neg_docs
+
+    def __init_cooccur(self, docs, word_idfs):
         n_docs = len(docs)
         self.p_co = np.zeros((self.n_words, self.n_words), np.float32)
         word_docs = [set() for _ in range(self.n_words)]
@@ -118,38 +145,31 @@ class NegUrnLDA:
             for w in words:
                 word_docs[w].add(i)
 
-        self.word_probs = np.asarray([len(docs) for docs in word_docs], np.float32)
-        self.word_probs /= np.sum(self.word_probs)
-
-        self.A = np.zeros((self.n_words, self.n_words), np.float32)
         # lambda_v = np.zeros(self.n_words, np.float32)
         for w1 in range(self.n_words):
             docs1 = word_docs[w1]
             # print(docs1)
             # lambda_v[w1] = np.log(n_docs / len(docs1))
-            self.A[w1][w1] = len(docs1)
             for w2 in range(w1 + 1, self.n_words):
                 if w1 == w2:
                     continue
                 docs2 = word_docs[w2]
                 si = docs1.intersection(docs2)
                 su = docs1.union(docs2)
-                self.A[w1][w2] = self.A[w2][w1] = len(si)
                 self.p_co[w1][w2] = self.p_co[w2][w1] = len(si) / len(su)
 
-        # word_idfs = [(self.vocab[w], lambda_v[w]) for w in range(self.n_words)]
-        # word_idfs.sort(key=lambda x: x[1])
-        # for w, idf in word_idfs:
-        #     print(w, idf)
-        # exit()
-
-        for j in range(self.n_words):
-            for i in range(self.n_words):
-                # self.A[i][j] *= lambda_v[i]
-                self.A[i][j] *= word_idfs[i]
-            sum_col = np.sum(self.A[:, j])
-            for i in range(self.n_words):
-                self.A[i][j] /= sum_col
+        self.word_probs = np.asarray([len(docs) for docs in word_docs], np.float32)
+        self.word_probs /= np.sum(self.word_probs)
+        neg_docs = [list() for _ in range(len(docs))]
+        for i, doc in enumerate(docs):
+            doc_words = set(doc)
+            for _ in range(len(doc) * 5):
+                while True:
+                    nw = np.random.multinomial(1, self.word_probs).argmax()
+                    if nw not in doc_words:
+                        neg_docs[i].append(nw)
+                        break
+        return neg_docs
 
     def __perplexity(self, docs):
         nd = np.sum(self.ndz, 1)
@@ -211,7 +231,7 @@ def __check_topics():
     #     print(' '.join(['{:.8f}'.format(float(v)) for v in r]))
 
 
-urnlda = NegUrnLDA(alpha=0.1, n_iter=50, k=10)
+urnlda = NegUrnLDA(alpha=0.1, n_iter=100, k=10)
 docs, vocab, word_idfs = process_quora()
 urnlda.fit(docs, vocab, word_idfs)
 
