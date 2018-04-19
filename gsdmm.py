@@ -1,9 +1,9 @@
 import numpy as np
-from scipy.sparse import lil_matrix
 from scipy.sparse import find
 import math
 import utils
 from config import *
+import topicmerge
 import textvectorizer
 
 
@@ -75,6 +75,12 @@ class GSDMM:
                     N_k_w[k_new, w] += X[d, w]
         self.topic_word_ = N_k_w
 
+    def save(self, vocab, vocab_file, topic_file):
+        utils.write_list_to_lines(vocab, vocab_file)
+        with open(topic_file, 'w', encoding='utf-8', newline='\n') as fout:
+            for t in self.topic_word_:
+                fout.write('{}\n'.format(' '.join([str(n) for n in t])))
+
 
 if __name__ == '__main__':
     # name = 'DC'
@@ -93,10 +99,12 @@ if __name__ == '__main__':
 
     k = 10
     dmm = GSDMM(k, 50)
-    # print(X.astype())
-    # exit()
     dmm.fit(X)
     for t in dmm.topic_word_:
         widxs = np.argpartition(-t, range(10))[:10]
         topic_words = [cv.vocab[i] for i in widxs]
         print(' '.join(topic_words))
+
+    test_vocab_file = os.path.join(QUORA_DATA_DIR, 'wp_vocab.txt')
+    test_topic_file = os.path.join(QUORA_DATA_DIR, 'wp_topics.txt')
+    dmm.save(cv.vocab, test_vocab_file, test_topic_file)

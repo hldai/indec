@@ -3,7 +3,13 @@ import json
 
 def read_lines_to_list(filename):
     with open(filename, encoding='utf-8') as f:
-        return [line for line in f]
+        return [line.strip() for line in f]
+
+
+def write_list_to_lines(str_list, filename):
+    with open(filename, 'w', encoding='utf-8', newline='\n') as fout:
+        for s in str_list:
+            fout.write('{}\n'.format(s))
 
 
 def load_entity_name_to_doc_file(filename):
@@ -22,3 +28,21 @@ def get_word_set(docs):
         for w in doc:
             words.add(w)
     return words
+
+
+def get_codoc_matrix(vocab, text_list):
+    import numpy as np
+
+    n_words = len(vocab)
+    word_dict = {w: i for i, w in enumerate(vocab)}
+    D = np.zeros((n_words, n_words), np.int32)
+    for text in text_list:
+        words = set(text.strip().split(' '))
+        words = [word_dict[w] for w in words]
+        l = len(words)
+        for i in range(l):
+            w1 = words[i]
+            for j in range(i, l):
+                w2 = words[j]
+                D[w1][w2] += 1
+    return D
