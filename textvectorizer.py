@@ -9,6 +9,11 @@ SPECIAL_WORDS = frozenset([
     '-lsb-', '-rsb-', '*', ';', '#', '·', '$', '`', '>', '%', '\\', '/', '--', '&'])
 
 
+def get_word_idfs(vocab, df_file, n_docs):
+    df = pd.read_csv(df_file)
+    # TODO
+
+
 def gen_df(docs_file, dst_file, to_lower=False, rm_one_time_words=True):
     f = open(docs_file, encoding='utf-8')
     df_dict = dict()
@@ -31,24 +36,28 @@ def gen_df(docs_file, dst_file, to_lower=False, rm_one_time_words=True):
 
 
 class CountVectorizer:
-    def __init__(self, df_file, min_df, max_df, remove_stopwords=False, remove_special_words=True, words_exist=None):
-        df = pd.read_csv(df_file)
-        df = df[df['cnt'].between(min_df, max_df)]
-
+    def __init__(self, vocab_arg, remove_stopwords=False, remove_special_words=True, words_exist=None):
         self.vocab = list()
         self.word_cnts = dict()
-        for w, cnt in df.itertuples(False, None):
-            if remove_stopwords and w in ENGLISH_STOP_WORDS:
-                continue
-            if remove_special_words and w in SPECIAL_WORDS:
-                continue
-            if words_exist is not None and w not in words_exist:
-                continue
-            self.word_cnts[w] = cnt
-            self.vocab.append(w)
+
+        if isinstance(vocab_arg, tuple):
+            df_file, min_df, max_df = vocab_arg
+            df = pd.read_csv(df_file)
+            df = df[df['cnt'].between(min_df, max_df)]
+            for w, cnt in df.itertuples(False, None):
+                if remove_stopwords and w in ENGLISH_STOP_WORDS:
+                    continue
+                if remove_special_words and w in SPECIAL_WORDS:
+                    continue
+                if words_exist is not None and w not in words_exist:
+                    continue
+                self.word_cnts[w] = cnt
+                self.vocab.append(w)
+        else:
+            self.vocab = vocab_arg
 
         self.word_dict = {w: i for i, w in enumerate(self.vocab)}
-        self.n_words = len(self.word_dict)
+        self.n_words = len(self.vocab)
 
     def get_vec(self, text: str):
         words = text.strip().split(' ')

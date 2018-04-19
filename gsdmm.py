@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from scipy.sparse import find
 import math
 import utils
@@ -73,13 +74,14 @@ class GSDMM:
                 N_k[k_new] += N_d[d]
                 for w in words_d[d]:
                     N_k_w[k_new, w] += X[d, w]
-        self.topic_word_ = N_k_w
+        self.topic_word_ = N_k_w + self.beta
 
     def save(self, vocab, vocab_file, topic_file):
         utils.write_list_to_lines(vocab, vocab_file)
         with open(topic_file, 'w', encoding='utf-8', newline='\n') as fout:
-            for t in self.topic_word_:
-                fout.write('{}\n'.format(' '.join([str(n) for n in t])))
+            pd.DataFrame(self.topic_word_).to_csv(fout, header=False, index=False)
+            # for t in self.topic_word_:
+            #     fout.write('{}\n'.format(' '.join([str(n) for n in t])))
 
 
 if __name__ == '__main__':
@@ -93,7 +95,7 @@ if __name__ == '__main__':
     contents = [all_doc_contents[idx] for idx in doc_idxs]
     docs_words = [content.split(' ') for content in contents]
     words_exist = utils.get_word_set(docs_words)
-    cv = textvectorizer.CountVectorizer(QUORA_DF_FILE, 50, 6000, remove_stopwords=True, words_exist=words_exist)
+    cv = textvectorizer.CountVectorizer((QUORA_DF_FILE, 50, 6000), remove_stopwords=True, words_exist=words_exist)
     print(len(cv.vocab), 'words in vocab')
     X = cv.get_vecs(contents, normalize=False)
 

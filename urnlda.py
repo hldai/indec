@@ -169,7 +169,7 @@ def process_quora():
     contents = [all_doc_contents[idx] for idx in doc_idxs]
     docs_words = [content.split(' ') for content in contents]
     words_exist = utils.get_word_set(docs_words)
-    cv = textvectorizer.CountVectorizer(QUORA_DF_FILE, 50, 6000, remove_stopwords=True, words_exist=words_exist)
+    cv = textvectorizer.CountVectorizer((QUORA_DF_FILE, 50, 6000), remove_stopwords=True, words_exist=words_exist)
     print(len(cv.vocab), 'words in vocab')
     word_idfs = [np.log(QUORA_NUM_TOTAL_DOCS / cv.word_cnts[w]) for w in cv.vocab]
 

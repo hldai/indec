@@ -38,7 +38,7 @@ def get_codoc_matrix(vocab, text_list):
     D = np.zeros((n_words, n_words), np.int32)
     for text in text_list:
         words = set(text.strip().split(' '))
-        words = [word_dict[w] for w in words]
+        words = [word_dict[w] for w in words if w in word_dict]
         l = len(words)
         for i in range(l):
             w1 = words[i]
@@ -46,3 +46,17 @@ def get_codoc_matrix(vocab, text_list):
                 w2 = words[j]
                 D[w1][w2] += 1
     return D
+
+
+def load_docs_with_name(name, docs_file, name_doc_file):
+    all_doc_contents = read_lines_to_list(docs_file)
+    name_doc_dict = load_entity_name_to_doc_file(name_doc_file)
+    doc_idxs = name_doc_dict[name]
+    return [all_doc_contents[idx] for idx in doc_idxs]
+
+
+def disp_topics(vocab, topics, n_words=10):
+    import numpy as np
+    for t in topics:
+        idxs = np.argpartition(-t, range(n_words))[:n_words]
+        print(' '.join([vocab[i] for i in idxs]))
