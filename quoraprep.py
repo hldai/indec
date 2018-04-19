@@ -215,7 +215,7 @@ def __answer_text_to_lower():
 
 
 def __gen_docs_with_specific_name():
-    name = 'dc'
+    name = 'WP'
     all_doc_contents = utils.read_lines_to_list(QUORA_ANSWER_CONTENT_FILE)
     name_doc_dict = utils.load_entity_name_to_doc_file(QUORA_NAME_DOC_FILE)
     doc_idxs = name_doc_dict[name]

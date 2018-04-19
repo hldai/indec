@@ -2,13 +2,15 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from scipy.sparse import find
 import math
+import utils
+from config import *
+import textvectorizer
 
 
 class GSDMM:
     def __init__(self, n_topics, n_iter, alpha=0.1, beta=0.1, random_state=None):
         self.n_topics = n_topics
         self.n_iter = n_iter
-        self.random_state = random_state
         if random_state is not None:
             np.random.seed(random_state)
         self.alpha = alpha
@@ -22,7 +24,8 @@ class GSDMM:
         D, V = X.shape
         K = self.n_topics
 
-        N_d = X.sum(axis=1)
+        N_d = np.asarray(X.sum(axis=1), np.int32).flatten()
+        print(len(N_d), 'docs')
         words_d = {}
         for d in range(D):
             words_d[d] = find(X[d, :])[1]
@@ -33,7 +36,7 @@ class GSDMM:
         # N_k_w = lil_matrix((K, V), dtype=np.int32)
         N_k_w = np.zeros((K, V), np.int32)
 
-        K_d = np.zeros(D)
+        K_d = np.zeros(D, np.int32)
 
         for d in range(D):
             k = np.random.choice(K, 1, p=[1.0 / K] * K)[0]
@@ -74,4 +77,26 @@ class GSDMM:
 
 
 if __name__ == '__main__':
-    pass
+    # name = 'DC'
+    name = 'WP'
+    # name = 'Austin'
+    # name = 'Mark'
+    all_doc_contents = utils.read_lines_to_list(QUORA_ANSWER_TOK_LOWER_FILE)
+    name_doc_dict = utils.load_entity_name_to_doc_file(QUORA_NAME_DOC_FILE)
+    doc_idxs = name_doc_dict[name]
+    contents = [all_doc_contents[idx] for idx in doc_idxs]
+    docs_words = [content.split(' ') for content in contents]
+    words_exist = utils.get_word_set(docs_words)
+    cv = textvectorizer.CountVectorizer(QUORA_DF_FILE, 50, 6000, remove_stopwords=True, words_exist=words_exist)
+    print(len(cv.vocab), 'words in vocab')
+    X = cv.get_vecs(contents, normalize=False)
+
+    k = 10
+    dmm = GSDMM(k, 50)
+    # print(X.astype())
+    # exit()
+    dmm.fit(X)
+    for t in dmm.topic_word_:
+        widxs = np.argpartition(-t, range(10))[:10]
+        topic_words = [cv.vocab[i] for i in widxs]
+        print(' '.join(topic_words))
