@@ -4,6 +4,7 @@ from scipy.sparse import find
 import math
 import utils
 from config import *
+from topicmodel import TopicModel
 import topicmerge
 import textvectorizer
 
@@ -85,8 +86,8 @@ class GSDMM:
 
 
 if __name__ == '__main__':
-    # name = 'DC'
-    name = 'WP'
+    name = 'DC'
+    # name = 'WP'
     # name = 'Austin'
     # name = 'Mark'
     all_doc_contents = utils.read_lines_to_list(QUORA_ANSWER_TOK_LOWER_FILE)
@@ -98,15 +99,37 @@ if __name__ == '__main__':
     cv = textvectorizer.CountVectorizer((QUORA_DF_FILE, 50, 6000), remove_stopwords=True, words_exist=words_exist)
     print(len(cv.vocab), 'words in vocab')
     X = cv.get_vecs(contents, normalize=False)
+    D_codoc = utils.get_codoc_matrix(cv.vocab, contents)
 
-    k = 10
-    dmm = GSDMM(k, 50)
-    dmm.fit(X)
-    for t in dmm.topic_word_:
-        widxs = np.argpartition(-t, range(10))[:10]
-        topic_words = [cv.vocab[i] for i in widxs]
-        print(' '.join(topic_words))
+    # k = 3
+    for k in range(10, 11):
+        dmm = GSDMM(k, 100, alpha=0.01, beta=0.01)
+        dmm.fit(X)
+        for t in dmm.topic_word_:
+            widxs = np.argpartition(-t, range(10))[:10]
+            topic_words = [cv.vocab[i] for i in widxs]
+            print(' '.join(topic_words))
 
-    test_vocab_file = os.path.join(QUORA_DATA_DIR, 'wp_vocab.txt')
-    test_topic_file = os.path.join(QUORA_DATA_DIR, 'wp_topics.txt')
-    dmm.save(cv.vocab, test_vocab_file, test_topic_file)
+        M_coh = 10
+        cohs = list()
+        coh_arr = np.zeros((k, k), np.float32)
+        for i, t1 in enumerate(dmm.topic_word_):
+            c = TopicModel.coherence(t1, D_codoc, M_coh)
+            cohs.append(c)
+            widxs1 = np.argpartition(-t1, range(M_coh))[:M_coh]
+            for j in range(i + 1, k):
+                t2 = dmm.topic_word_[j]
+                t_tmp = t1 + t2
+                c_tmp = TopicModel.coherence(t_tmp, D_codoc, M_coh)
+                widxs2 = np.argpartition(-t2, range(M_coh))[:M_coh]
+                for w1 in widxs1:
+                    for w2 in widxs2:
+                        coh_arr[i][j] += D_codoc[w1][w2] / D_codoc[w1][w1] / D_codoc[w2][w2]
+                coh_arr[j][i] = coh_arr[i][j]
+        print(cohs)
+        for cs in coh_arr:
+            print(' '.join([str(v) for v in cs]))
+
+        test_vocab_file = os.path.join(QUORA_DATA_DIR, '{}_vocab.txt'.format(name))
+        test_topic_file = os.path.join(QUORA_DATA_DIR, '{}_topics.txt'.format(name))
+        dmm.save(cv.vocab, test_vocab_file, test_topic_file)

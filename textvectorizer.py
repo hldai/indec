@@ -11,7 +11,19 @@ SPECIAL_WORDS = frozenset([
 
 def get_word_idfs(vocab, df_file, n_docs):
     df = pd.read_csv(df_file)
-    # TODO
+    word_idf_dict = {w: np.log(n_docs / cnt) for w, cnt in df.itertuples(False, None)}
+    return [word_idf_dict[w] for w in vocab]
+
+
+def get_tfidf_vecs(tf_vecs, word_idfs):
+    rows, cols, data = list(), list(), list()
+    for i, r in enumerate(tf_vecs):
+        n_words = np.sum(r.data[0])
+        for j, tf in zip(r.rows[0], r.data[0]):
+            rows.append(i)
+            cols.append(j)
+            data.append(tf / n_words * word_idfs[j])
+    return sparse.csr_matrix((data, (rows, cols)), tf_vecs.shape, np.float32)
 
 
 def gen_df(docs_file, dst_file, to_lower=False, rm_one_time_words=True):

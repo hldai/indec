@@ -3,6 +3,15 @@ import pandas as pd
 import utils
 
 
+def topic_prob(topic, word_idxs, cnts):
+    prob = 0
+    pw = topic / np.sum(topic)
+    # print(pw[:10])
+    for idx, cnt in zip(word_idxs, cnts):
+        prob += np.log(pw[idx]) * cnt
+    return prob
+
+
 class TopicModel:
     def __init__(self, vocab_file, topic_file):
         self.vocab = utils.read_lines_to_list(vocab_file)
@@ -19,7 +28,6 @@ class TopicModel:
             for idx, cnt in zip(word_idxs, cnts):
                 probs[i] += np.log(pw[idx]) * cnt
         return probs
-
 
     @staticmethod
     def coherence(t, D, M=10):
