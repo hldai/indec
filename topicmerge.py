@@ -8,8 +8,25 @@ import textvectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 
-def reduce_topics(topics):
-    pass
+def reduce_topics_word_match(topics, n_top_words, n_same_words):
+    k = len(topics)
+    top_word_idxs = list()
+    for t in topics:
+        idxs = np.argpartition(-t, range(n_top_words))[:n_top_words]
+        top_word_idxs.append(idxs)
+
+    n_match_arr = np.zeros((k, k), np.int32)
+    for i, t1 in enumerate(topics):
+        idxs1 = top_word_idxs[i]
+        for j in range(i + 1, len(topics)):
+            # t2 = topics[j]
+            idxs2 = top_word_idxs[j]
+            for w1 in idxs1:
+                if w1 in idxs2:
+                    n_match_arr[i][j] += 1
+            n_match_arr[j][i] = n_match_arr[i][j]
+    for arr in n_match_arr:
+        print(' '.join([str(v) for v in arr]))
 
 
 def __check_coherences():
@@ -33,38 +50,40 @@ def __check_coherences():
     for i, t in enumerate(tm.topics):
         coherences.append(tm.coherence(t, D_codoc))
         print(i, coherences[-1])
-        idxs = np.argpartition(-t, range(20))[:20]
+        idxs = np.argpartition(-t, range(30))[:30]
         print(' '.join([tm.vocab[i] for i in idxs]))
     print()
 
-    M_coh = 20
-    cohs = list()
-    coh_arr = np.zeros((k, k), np.float32)
-    for i, t1 in enumerate(tm.topics):
-        c = TopicModel.coherence(t1, D_codoc, M_coh)
-        cohs.append(c)
-        widxs1 = np.argpartition(-t1, range(M_coh))[:M_coh]
-        for j in range(i + 1, k):
-            t2 = tm.topics[j]
-            widxs2 = np.argpartition(-t2, range(M_coh))[:M_coh]
-            for w1 in widxs1:
-                for w2 in widxs2:
-                    coh_arr[i][j] += D_codoc[w1][w2] / D_codoc[w1][w1] / D_codoc[w2][w2]
-            coh_arr[j][i] = coh_arr[i][j]
-    print(cohs)
-    for cs in coh_arr:
-        print(' '.join(['{:06.3f}'.format(v) for v in cs]))
+    reduce_topics_word_match(tm.topics, 30, 2)
 
-    print()
-    t1, t2 = tm.topics[1], tm.topics[7]
-    widxs1 = np.argpartition(-t1, range(M_coh))[:M_coh]
-    widxs2 = np.argpartition(-t2, range(M_coh))[:M_coh]
-    for w1 in widxs1:
-        cohs = list()
-        for w2 in widxs2:
-            cohs.append(D_codoc[w1][w2] / D_codoc[w1][w1] / D_codoc[w2][w2])
-        print(tm.vocab[w1], sum(cohs), word_idfs[w1])
-        print(' '.join(['{:.3f}'.format(v) for v in cohs]))
+    # M_coh = 20
+    # cohs = list()
+    # coh_arr = np.zeros((k, k), np.float32)
+    # for i, t1 in enumerate(tm.topics):
+    #     c = TopicModel.coherence(t1, D_codoc, M_coh)
+    #     cohs.append(c)
+    #     widxs1 = np.argpartition(-t1, range(M_coh))[:M_coh]
+    #     for j in range(i + 1, k):
+    #         t2 = tm.topics[j]
+    #         widxs2 = np.argpartition(-t2, range(M_coh))[:M_coh]
+    #         for w1 in widxs1:
+    #             for w2 in widxs2:
+    #                 coh_arr[i][j] += D_codoc[w1][w2] / D_codoc[w1][w1] / D_codoc[w2][w2]
+    #         coh_arr[j][i] = coh_arr[i][j]
+    # print(cohs)
+    # for cs in coh_arr:
+    #     print(' '.join(['{:06.3f}'.format(v) for v in cs]))
+    #
+    # print()
+    # t1, t2 = tm.topics[1], tm.topics[7]
+    # widxs1 = np.argpartition(-t1, range(M_coh))[:M_coh]
+    # widxs2 = np.argpartition(-t2, range(M_coh))[:M_coh]
+    # for w1 in widxs1:
+    #     cohs = list()
+    #     for w2 in widxs2:
+    #         cohs.append(D_codoc[w1][w2] / D_codoc[w1][w1] / D_codoc[w2][w2])
+    #     print(tm.vocab[w1], sum(cohs), word_idfs[w1])
+    #     print(' '.join(['{:.3f}'.format(v) for v in cohs]))
 
 
 def __check_doc_dists():
