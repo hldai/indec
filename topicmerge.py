@@ -105,11 +105,18 @@ def __check_doc_dists():
     cv = textvectorizer.CountVectorizer(tm.vocab, remove_stopwords=True, words_exist=words_exist)
     X = cv.get_vecs(contents)
 
+    utils.disp_topics(tm.vocab, tm.topics, 20)
+
     topic_docs = [list() for _ in range(tm.n_topics)]
     for i, doc in enumerate(X):
         probs = tm.topic_probs(doc.indices, doc.data)
         topic_idx = np.argmax(probs)
         topic_docs[topic_idx].append(i)
+
+    for docs in topic_docs:
+        print(docs)
+
+    exit()
 
     X_topics = sparse.lil_matrix((tm.n_topics, len(tm.vocab)))
     utils.disp_topics(tm.vocab, tm.topics, 20)
@@ -173,7 +180,56 @@ def __check_topic_match():
         print()
 
 
+def __check_topic_docs_wc():
+    name = '曹操'
+
+    vocab_file = os.path.join(WC_DATADIR, 'cc_vocab.txt'.format(name))
+    topic_file = os.path.join(WC_DATADIR, 'cc_topics.txt'.format(name))
+    tm = TopicModel(vocab_file, topic_file)
+    print(len(tm.vocab), 'words in vocab')
+
+    n_topic_words = 10
+    topic_words = list()
+    for i, t in enumerate(tm.topics):
+        idxs = np.argpartition(-t, range(n_topic_words))[:n_topic_words]
+        topic_words.append(idxs)
+        print(i, ' '.join([tm.vocab[i] for i in idxs]))
+
+    matched_lists = [list() for _ in range(tm.n_topics)]
+    for i in range(tm.n_topics):
+        words1 = topic_words[i]
+        for j in range(i + 1, tm.n_topics):
+            words2 = topic_words[j]
+            mcnt = 0
+            for w1 in words1:
+                if w1 in words2:
+                    mcnt += 1
+            if mcnt > 1:
+                matched_lists[i].append(j)
+
+    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
+    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
+    doc_idxs = name_doc_dict['曹操']
+    contents = [all_doc_contents[idx] for idx in doc_idxs]
+    print(len(contents), 'docs')
+
+    docs_words = [content.split(' ') for content in contents]
+    words_exist = utils.get_word_set(docs_words)
+    cv = textvectorizer.CountVectorizer(tm.vocab, remove_stopwords=True, words_exist=words_exist)
+    print(len(cv.vocab), 'words in vocab')
+    X = cv.get_vecs(contents, normalize=False)
+
+    topic_docs = [list() for _ in range(tm.n_topics)]
+    for i, doc in enumerate(X):
+        probs = tm.topic_probs(doc.indices, doc.data)
+        topic_idx = np.argmax(probs)
+        topic_docs[topic_idx].append(i)
+    for i, docs in enumerate(topic_docs):
+        print(i, docs)
+
+
 if __name__ == '__main__':
-    __check_coherences()
+    # __check_coherences()
     # __check_doc_dists()
     # __check_topic_match()
+    __check_topic_docs_wc()

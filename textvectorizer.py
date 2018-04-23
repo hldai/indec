@@ -6,7 +6,10 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 
 
 SPECIAL_WORDS = frozenset([
-    '-lsb-', '-rsb-', '*', ';', '#', '·', '$', '`', '>', '%', '\\', '/', '--', '&'])
+    '-lsb-', '-rsb-', '*', ';', '#', '·', '$', '`', '>', '%', '\\', '/', '--', '&', '"',
+    '.', '+', '【', '】', '★', '「', '」', '…', '[', ']', '(', ')', '!', '◆', '▌', ',',
+    '-'
+])
 
 
 def get_word_idfs(vocab, df_file, n_docs):

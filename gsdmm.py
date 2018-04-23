@@ -9,6 +9,7 @@ from config import *
 from topicmodel import TopicModel
 import topicmerge
 import textvectorizer
+from time import time
 
 sellib = ctypes.CDLL('d:/projects/cpp/indeclib/x64/Release/indeclib.dll')
 sellib.get_log_probs.argtypes = [
@@ -27,9 +28,10 @@ class GSDMM:
         self.alpha = alpha
         self.beta = beta
         self.topic_word_ = None
+        self.n_words = 0
 
     def fit(self, X):
-        D, V = X.shape
+        D, self.n_words = X.shape
         K = self.n_topics
 
         N_d = np.asarray(X.sum(axis=1), np.int32).flatten()
@@ -38,8 +40,8 @@ class GSDMM:
         # initialization
         N_k = np.zeros(K, np.int32)
         M_k = np.zeros(K, np.int32)
-        # N_k_w = lil_matrix((K, V), dtype=np.int32)
-        N_k_w = np.zeros((K, V), np.int32)
+        # N_k_w = lil_matrix((K, self.n_words), dtype=np.int32)
+        N_k_w = np.zeros((K, self.n_words), np.int32)
 
         K_d = np.zeros(D, np.int32)
 
@@ -48,33 +50,51 @@ class GSDMM:
             K_d[d] = k
             M_k[k] = M_k[k] + 1
             N_k[k] = N_k[k] + N_d[d]
-            for w in X[d].indices:
-                N_k_w[k, w] = N_k_w[k, w] + X[d, w]
+            x_tmp = X[d]
+            for w, cnt in zip(x_tmp.indices, x_tmp.data):
+                N_k_w[k, w] = N_k_w[k, w] + cnt
 
         for it in range(self.n_iter):
-            print('iter ', it)
+            if it % 5 == 0:
+                print('iter ', it)
+            # st = 0
+            # t = time()
             for d in range(D):
+                x = X[d]
+
                 k_old = K_d[d]
                 M_k[k_old] -= 1
                 N_k[k_old] -= N_d[d]
-                for w in X[d].indices:
-                    N_k_w[k_old, w] -= X[d, w]
+                for w, cnt in zip(x.indices, x.data):
+                    N_k_w[k_old, w] -= cnt
                 # sample k_new
                 log_probs = np.zeros(K, np.float32)
-                sellib.get_log_probs(log_probs, X[d].indices, X[d].data, len(X[d].indices), N_d[d], V,
-                                     M_k, N_k, N_k_w, K, self.alpha, self.beta)
+                N_k_w_top = self.__get_N_k_w_top(N_k_w)
+                # sellib.get_log_probs(log_probs, x.indices, x.data, len(x.indices), N_d[d], self.n_words,
+                #                      M_k, N_k, N_k_w, K, self.alpha, self.beta)
+                sellib.get_log_probs(log_probs, x.indices, x.data, len(x.indices), N_d[d], self.n_words,
+                                     M_k, N_k, N_k_w_top, K, self.alpha, self.beta)
                 # log_probs = self.__update_log_probs(log_probs, X[d].indices, X[d].data, N_d[d], V, M_k, N_k, N_k_w)
                 # print(log_probs)
                 probs = np.exp(log_probs)
                 probs = probs / np.sum(probs)
-                # exit()
                 k_new = np.random.choice(K, 1, p=probs)[0]
                 K_d[d] = k_new
                 M_k[k_new] += 1
                 N_k[k_new] += N_d[d]
-                for w in X[d].indices:
-                    N_k_w[k_new, w] += X[d, w]
+                for w, cnt in zip(x.indices, x.data):
+                    N_k_w[k_new, w] += cnt
+            # print(time() - t, st)
         self.topic_word_ = N_k_w + self.beta
+
+    def __get_N_k_w_top(self, N_k_w):
+        n_top = 10
+        N_k_w_top = np.zeros((self.n_topics, self.n_words), np.int32)
+        for k in range(self.n_topics):
+            top_words = np.argpartition(-N_k_w[k], range(n_top))[:n_top]
+            for w in top_words:
+                N_k_w_top[k][w] = N_k_w[k][w]
+        return N_k_w_top
 
     def __update_log_probs(self, log_probs, words, tfs, n_doc_words, n_vocab_words, M_k, N_k, N_k_w):
         for k in range(self.n_topics):
@@ -92,6 +112,16 @@ class GSDMM:
             pd.DataFrame(self.topic_word_).to_csv(fout, header=False, index=False)
             # for t in self.topic_word_:
             #     fout.write('{}\n'.format(' '.join([str(n) for n in t])))
+
+    # def __perplexity(self, docs):
+    #     nd = np.sum(self.ndz, 1)
+    #     n = 0
+    #     ll = 0.0
+    #     for d, doc in enumerate(docs):
+    #         for w in doc:
+    #             ll = ll + np.log(((self.nzw[:, w] / self.nz) * (self.ndz[d, :] / nd[d])).sum())
+    #         n += len(doc)
+    #     return np.exp(ll / (-n))
 
 
 def __show_coherences(k, topics, D_codoc):
@@ -133,7 +163,7 @@ def __run_with_quora():
     # D_codoc = utils.get_codoc_matrix(cv.vocab, contents)
 
     # k = 3
-    n_topic_words_disp = 20
+    n_topic_words_disp = 10
     for k in range(10, 11):
         dmm = GSDMM(k, 100, alpha=0.01, beta=0.01)
         dmm.fit(X)
@@ -151,6 +181,7 @@ def __run_with_quora():
 
 def __run_with_wc():
     name = '曹操'
+    doc_name_dict = {'曹操': 'cc'}
 
     all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
     name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
@@ -160,25 +191,26 @@ def __run_with_wc():
 
     docs_words = [content.split(' ') for content in contents]
     words_exist = utils.get_word_set(docs_words)
-    cv = textvectorizer.CountVectorizer((WC_DF_FILE, 50, 3000), remove_stopwords=True, words_exist=words_exist)
+    cv = textvectorizer.CountVectorizer((WC_DF_FILE, 50, 2000), remove_stopwords=True, words_exist=words_exist)
     print(len(cv.vocab), 'words in vocab')
     X = cv.get_vecs(contents, normalize=False)
     # D_codoc = utils.get_codoc_matrix(cv.vocab, contents)
 
+    n_topic_words_disp = 10
     print('starting training ...')
-    for k in range(10, 11):
+    for k in range(20, 21):
         dmm = GSDMM(k, 100, alpha=0.01, beta=0.01)
         dmm.fit(X)
         for t in dmm.topic_word_:
-            widxs = np.argpartition(-t, range(10))[:10]
+            widxs = np.argpartition(-t, range(n_topic_words_disp))[:n_topic_words_disp]
             topic_words = [cv.vocab[i] for i in widxs]
             print(' '.join(topic_words))
 
-        test_vocab_file = os.path.join(QUORA_DATA_DIR, '{}_vocab.txt'.format(name))
-        test_topic_file = os.path.join(QUORA_DATA_DIR, '{}_topics.txt'.format(name))
+        test_vocab_file = os.path.join(WC_DATADIR, '{}_vocab.txt'.format(doc_name_dict[name]))
+        test_topic_file = os.path.join(WC_DATADIR, '{}_topics.txt'.format(doc_name_dict[name]))
         dmm.save(cv.vocab, test_vocab_file, test_topic_file)
 
 
 if __name__ == '__main__':
-    __run_with_quora()
-    # __run_with_wc()
+    # __run_with_quora()
+    __run_with_wc()
