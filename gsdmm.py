@@ -180,12 +180,13 @@ def __run_with_quora():
 
 
 def __run_with_wc():
-    name = '曹操'
-    doc_name_dict = {'曹操': 'cc'}
+    # name = '曹操'
+    name = '韩信'
+    doc_name_dict = {'曹操': 'cc', '韩信': 'hx'}
 
     all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
     name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
-    doc_idxs = name_doc_dict['曹操']
+    doc_idxs = name_doc_dict[name]
     contents = [all_doc_contents[idx] for idx in doc_idxs]
     print(len(contents), 'docs')
 

@@ -180,11 +180,50 @@ def __check_topic_match():
         print()
 
 
-def __check_topic_docs_wc():
-    name = '曹操'
+def __match_dfs(v, matched_lists, vst: set):
+    vst.add(v)
+    for x in matched_lists[v]:
+        if x not in vst:
+            __match_dfs(x, matched_lists, vst)
 
-    vocab_file = os.path.join(WC_DATADIR, 'cc_vocab.txt'.format(name))
-    topic_file = os.path.join(WC_DATADIR, 'cc_topics.txt'.format(name))
+
+def __find_connected_comps(matched_lists):
+    all_vst = set()
+    comps = list()
+    for v in range(len(matched_lists)):
+        vst = set()
+        if v not in all_vst:
+            __match_dfs(v, matched_lists, vst)
+        if vst:
+            all_vst = all_vst.union(vst)
+            comps.append(vst)
+    print(comps)
+
+
+def __merge_topics_by_topic_words(topic_words, n_topics):
+    matched_lists = [list() for _ in range(n_topics)]
+    for i in range(n_topics):
+        words1 = topic_words[i]
+        for j in range(i + 1, n_topics):
+            words2 = topic_words[j]
+            mcnt = 0
+            for w1 in words1:
+                if w1 in words2:
+                    mcnt += 1
+            if mcnt > 1:
+                matched_lists[i].append(j)
+                matched_lists[j].append(i)
+    __find_connected_comps(matched_lists)
+
+
+def __check_topic_docs_wc():
+    # name = '曹操'
+    name = '韩信'
+    doc_name_dict = {'曹操': 'cc', '韩信': 'hx'}
+    doc_name = doc_name_dict[name]
+
+    vocab_file = os.path.join(WC_DATADIR, '{}_vocab.txt'.format(doc_name))
+    topic_file = os.path.join(WC_DATADIR, '{}_topics.txt'.format(doc_name))
     tm = TopicModel(vocab_file, topic_file)
     print(len(tm.vocab), 'words in vocab')
 
@@ -195,37 +234,38 @@ def __check_topic_docs_wc():
         topic_words.append(idxs)
         print(i, ' '.join([tm.vocab[i] for i in idxs]))
 
-    matched_lists = [list() for _ in range(tm.n_topics)]
-    for i in range(tm.n_topics):
-        words1 = topic_words[i]
-        for j in range(i + 1, tm.n_topics):
-            words2 = topic_words[j]
-            mcnt = 0
-            for w1 in words1:
-                if w1 in words2:
-                    mcnt += 1
-            if mcnt > 1:
-                matched_lists[i].append(j)
+    __merge_topics_by_topic_words(topic_words, tm.n_topics)
+    # matched_lists = [list() for _ in range(tm.n_topics)]
+    # for i in range(tm.n_topics):
+    #     words1 = topic_words[i]
+    #     for j in range(i + 1, tm.n_topics):
+    #         words2 = topic_words[j]
+    #         mcnt = 0
+    #         for w1 in words1:
+    #             if w1 in words2:
+    #                 mcnt += 1
+    #         if mcnt > 1:
+    #             matched_lists[i].append(j)
 
-    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
-    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
-    doc_idxs = name_doc_dict['曹操']
-    contents = [all_doc_contents[idx] for idx in doc_idxs]
-    print(len(contents), 'docs')
-
-    docs_words = [content.split(' ') for content in contents]
-    words_exist = utils.get_word_set(docs_words)
-    cv = textvectorizer.CountVectorizer(tm.vocab, remove_stopwords=True, words_exist=words_exist)
-    print(len(cv.vocab), 'words in vocab')
-    X = cv.get_vecs(contents, normalize=False)
-
-    topic_docs = [list() for _ in range(tm.n_topics)]
-    for i, doc in enumerate(X):
-        probs = tm.topic_probs(doc.indices, doc.data)
-        topic_idx = np.argmax(probs)
-        topic_docs[topic_idx].append(i)
-    for i, docs in enumerate(topic_docs):
-        print(i, docs)
+    # all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
+    # name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
+    # doc_idxs = name_doc_dict['曹操']
+    # contents = [all_doc_contents[idx] for idx in doc_idxs]
+    # print(len(contents), 'docs')
+    #
+    # docs_words = [content.split(' ') for content in contents]
+    # words_exist = utils.get_word_set(docs_words)
+    # cv = textvectorizer.CountVectorizer(tm.vocab, remove_stopwords=True, words_exist=words_exist)
+    # print(len(cv.vocab), 'words in vocab')
+    # X = cv.get_vecs(contents, normalize=False)
+    #
+    # topic_docs = [list() for _ in range(tm.n_topics)]
+    # for i, doc in enumerate(X):
+    #     probs = tm.topic_probs(doc.indices, doc.data)
+    #     topic_idx = np.argmax(probs)
+    #     topic_docs[topic_idx].append(i)
+    # for i, docs in enumerate(topic_docs):
+    #     print(i, docs)
 
 
 if __name__ == '__main__':
