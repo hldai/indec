@@ -36,7 +36,7 @@ def __gen_sep_content_file(doc_file, dst_content_file):
             fout.write('{}\n'.format(text))
 
 
-def __gen_name_to_doc_file():
+def __gen_name_to_doc_file(entity_names_file, doc_file, dst_file):
     entity_names = pd.read_csv(entity_names_file, header=None).as_matrix().flatten()
     df = pd.read_csv(doc_file, na_filter=False)
 
@@ -46,15 +46,15 @@ def __gen_name_to_doc_file():
             if name in content:
                 name_doc_dict[name].append(idx)
 
-    fout = open(WC_NAME_DOC_FILE, 'w', encoding='utf-8', newline='\n')
+    fout = open(dst_file, 'w', encoding='utf-8', newline='\n')
     for name, docs in name_doc_dict.items():
         fout.write('{}\n'.format(json.dumps({'entity_name': name, 'docs': docs}, ensure_ascii=False)))
     fout.close()
 
 
 def __gen_docs_with_specific_name():
-    all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_FILE)
-    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
+    all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_NODUP_FILE)
+    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_ND_FILE)
     doc_idxs = name_doc_dict['曹操']
     contents = [all_doc_contents[idx] for idx in doc_idxs]
     print(len(contents), 'docs')
@@ -111,7 +111,7 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 
 # __fix_src_data()
 # __gen_sep_content_file(doc_file, content_file)
-__filter_duplicate_docs()
-# textvectorizer.gen_df(seg_content_file, DF_FILE)
-# __gen_name_to_doc_file()
-# __gen_docs_with_specific_name()
+# __filter_duplicate_docs()
+# textvectorizer.gen_df(WC_SEG_DOC_CONTENT_NODUP_FILE, WC_DF_FILE)
+# __gen_name_to_doc_file(entity_names_file, WC_DOC_INFO_NODUP_FILE, WC_NAME_DOC_ND_FILE)
+__gen_docs_with_specific_name()

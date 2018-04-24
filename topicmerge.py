@@ -217,8 +217,8 @@ def __merge_topics_by_topic_words(topic_words, n_topics):
 
 
 def __check_topic_docs_wc():
-    # name = '曹操'
-    name = '韩信'
+    name = '曹操'
+    # name = '韩信'
     doc_name_dict = {'曹操': 'cc', '韩信': 'hx'}
     doc_name = doc_name_dict[name]
 

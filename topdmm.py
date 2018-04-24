@@ -19,8 +19,8 @@ sellib.get_log_probs.argtypes = [
 ]
 
 
-class GSDMM:
-    def __init__(self, n_topics, n_iter, alpha=0.1, beta=0.1, random_state=None):
+class TOPDMM:
+    def __init__(self, n_topics, n_iter, alpha=0.1, beta=0.1, random_state=None, n_top=-1):
         self.n_topics = n_topics
         self.n_iter = n_iter
         if random_state is not None:
@@ -29,6 +29,7 @@ class GSDMM:
         self.beta = beta
         self.topic_word_ = None
         self.n_words = 0
+        self.n_top = n_top
 
     def fit(self, X):
         D, self.n_words = X.shape
@@ -69,11 +70,13 @@ class GSDMM:
                     N_k_w[k_old, w] -= cnt
                 # sample k_new
                 log_probs = np.zeros(K, np.float32)
-                N_k_w_top = self.__get_N_k_w_top(N_k_w)
-                # sellib.get_log_probs(log_probs, x.indices, x.data, len(x.indices), N_d[d], self.n_words,
-                #                      M_k, N_k, N_k_w, K, self.alpha, self.beta)
-                sellib.get_log_probs(log_probs, x.indices, x.data, len(x.indices), N_d[d], self.n_words,
-                                     M_k, N_k, N_k_w_top, K, self.alpha, self.beta)
+                if self.n_top > -1:
+                    N_k_w_top = self.__get_N_k_w_top(N_k_w)
+                    sellib.get_log_probs(log_probs, x.indices, x.data, len(x.indices), N_d[d], self.n_words,
+                                         M_k, N_k, N_k_w_top, K, self.alpha, self.beta)
+                else:
+                    sellib.get_log_probs(log_probs, x.indices, x.data, len(x.indices), N_d[d], self.n_words,
+                                         M_k, N_k, N_k_w, K, self.alpha, self.beta)
                 # log_probs = self.__update_log_probs(log_probs, X[d].indices, X[d].data, N_d[d], V, M_k, N_k, N_k_w)
                 # print(log_probs)
                 probs = np.exp(log_probs)
@@ -88,10 +91,9 @@ class GSDMM:
         self.topic_word_ = N_k_w + self.beta
 
     def __get_N_k_w_top(self, N_k_w):
-        n_top = 10
         N_k_w_top = np.zeros((self.n_topics, self.n_words), np.int32)
         for k in range(self.n_topics):
-            top_words = np.argpartition(-N_k_w[k], range(n_top))[:n_top]
+            top_words = np.argpartition(-N_k_w[k], range(self.n_top))[:self.n_top]
             for w in top_words:
                 N_k_w_top[k][w] = N_k_w[k][w]
         return N_k_w_top
@@ -165,7 +167,7 @@ def __run_with_quora():
     # k = 3
     n_topic_words_disp = 10
     for k in range(10, 11):
-        dmm = GSDMM(k, 100, alpha=0.01, beta=0.01)
+        dmm = TOPDMM(k, 100, alpha=0.01, beta=0.01)
         dmm.fit(X)
         for t in dmm.topic_word_:
             widxs = np.argpartition(-t, range(n_topic_words_disp))[:n_topic_words_disp]
@@ -180,27 +182,27 @@ def __run_with_quora():
 
 
 def __run_with_wc():
-    # name = '曹操'
-    name = '韩信'
+    name = '曹操'
+    # name = '韩信'
     doc_name_dict = {'曹操': 'cc', '韩信': 'hx'}
 
-    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
-    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
+    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_NODUP_FILE)
+    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_ND_FILE)
     doc_idxs = name_doc_dict[name]
     contents = [all_doc_contents[idx] for idx in doc_idxs]
     print(len(contents), 'docs')
 
     docs_words = [content.split(' ') for content in contents]
     words_exist = utils.get_word_set(docs_words)
-    cv = textvectorizer.CountVectorizer((WC_DF_FILE, 50, 2000), remove_stopwords=True, words_exist=words_exist)
+    cv = textvectorizer.CountVectorizer((WC_DF_ND_FILE, 20, 700), remove_stopwords=True, words_exist=words_exist)
     print(len(cv.vocab), 'words in vocab')
     X = cv.get_vecs(contents, normalize=False)
     # D_codoc = utils.get_codoc_matrix(cv.vocab, contents)
 
     n_topic_words_disp = 10
     print('starting training ...')
-    for k in range(20, 21):
-        dmm = GSDMM(k, 100, alpha=0.01, beta=0.01)
+    for k in range(10, 11):
+        dmm = TOPDMM(k, 100, alpha=0.01, beta=0.01, n_top=10)
         dmm.fit(X)
         for t in dmm.topic_word_:
             widxs = np.argpartition(-t, range(n_topic_words_disp))[:n_topic_words_disp]
