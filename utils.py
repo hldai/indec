@@ -60,3 +60,14 @@ def disp_topics(vocab, topics, n_words=10):
     for t in topics:
         idxs = np.argpartition(-t, range(n_words))[:n_words]
         print(' '.join([vocab[i] for i in idxs]))
+
+
+def remove_lines(src_file, lines, dst_file):
+    f = open(src_file, encoding='utf-8')
+    fout = open(dst_file, 'w', encoding='utf-8', newline='\n')
+    for i, line in enumerate(f):
+        if i in lines:
+            continue
+        fout.write(line)
+    f.close()
+    fout.close()

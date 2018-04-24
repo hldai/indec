@@ -5,6 +5,7 @@ import pandas as pd
 from config import *
 import textvectorizer
 import utils
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 def __fix_src_data():
@@ -63,16 +64,54 @@ def __gen_docs_with_specific_name():
     fout.close()
 
 
+def __filter_duplicate_docs():
+    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
+    cv = textvectorizer.CountVectorizer((WC_DF_FILE, 100, 2000), remove_stopwords=True)
+    print(cv.n_words, 'words in vocab')
+    X = cv.get_vecs(all_doc_contents)
+    n_docs = len(all_doc_contents)
+    print(n_docs, 'docs', X.shape)
+    dup_docs = set()
+    for i, x1 in enumerate(X):
+        if i % 100 == 0:
+            print(i)
+        # print(i)
+
+        if i in dup_docs:
+            continue
+
+        for j in range(i + 1, n_docs):
+            if j in dup_docs:
+                continue
+            sim = cosine_similarity(x1, X[j])
+            if sim > 0.9:
+                dup_docs.add(j)
+
+        # if i == 5:
+        #     break
+
+    doc_info_df = pd.read_csv(doc_file)
+    dup_docs_list = list(dup_docs)
+    dup_docs_list.sort()
+    print(dup_docs_list[:100])
+    df_fil = doc_info_df.drop(dup_docs_list)
+    with open(WC_DOC_INFO_NODUP_FILE, 'w', encoding='utf-8', newline='\n') as fout:
+        df_fil.to_csv(fout, index=False)
+
+    utils.remove_lines(WC_DOC_CONTENT_FILE, dup_docs, WC_DOC_CONTENT_NODUP_FILE)
+    utils.remove_lines(WC_SEG_DOC_CONTENT_FILE, dup_docs, WC_SEG_DOC_CONTENT_NODUP_FILE)
+
+
 src_doc_file = os.path.join(WC_DATADIR, 'bizmsg.csv')
 doc_file = os.path.join(WC_DATADIR, 'docs-14k.csv')
 # title_file = os.path.join(DATADIR, 'docs-14k-titles.csv')
 content_file = os.path.join(WC_DATADIR, 'docs-14k-content.csv')
-seg_content_file = os.path.join(WC_DATADIR, 'docs-14k-content-seg.txt')
 entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # name_doc_file = os.path.join(DATADIR, 'name-doc.txt')
 
 # __fix_src_data()
 # __gen_sep_content_file(doc_file, content_file)
+__filter_duplicate_docs()
 # textvectorizer.gen_df(seg_content_file, DF_FILE)
 # __gen_name_to_doc_file()
-__gen_docs_with_specific_name()
+# __gen_docs_with_specific_name()

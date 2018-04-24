@@ -10,6 +10,10 @@ WC_NAME_DOC_FILE = os.path.join(WC_DATADIR, 'name-doc.txt')
 WC_DOC_CONTENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-content.txt')
 WC_SEG_DOC_CONTENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-content-seg.txt')
 
+WC_DOC_INFO_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-nodup.txt')
+WC_DOC_CONTENT_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-content-nodup.txt')
+WC_SEG_DOC_CONTENT_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-content-seg-nodup.txt')
+
 QUORA_ANSWER_CONTENT_FILE = os.path.join(QUORA_DATA_DIR, 'answer-text.txt')
 QUORA_ANSWER_NER_FILE = os.path.join(QUORA_DATA_DIR, 'answer-text-ner.txt')
 QUORA_ANSWER_TOK_FILE = os.path.join(QUORA_DATA_DIR, 'answer-text-tok.txt')
