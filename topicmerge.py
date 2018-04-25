@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import numpy as np
 from scipy import sparse
 from config import *
@@ -197,7 +198,7 @@ def __find_connected_comps(matched_lists):
         if vst:
             all_vst = all_vst.union(vst)
             comps.append(vst)
-    print(comps)
+    return comps
 
 
 def __merge_topics_by_topic_words(topic_words, n_topics):
@@ -213,7 +214,15 @@ def __merge_topics_by_topic_words(topic_words, n_topics):
             if mcnt > 1:
                 matched_lists[i].append(j)
                 matched_lists[j].append(i)
-    __find_connected_comps(matched_lists)
+    return __find_connected_comps(matched_lists)
+
+
+def __get_merged_topics(topic_comps, topics):
+    new_topics = np.zeros((len(topic_comps), topics.shape[1]), np.float32)
+    for i, comp in enumerate(topic_comps):
+        for t_idx in comp:
+            new_topics[i] += topics[t_idx]
+    return new_topics
 
 
 def __check_topic_docs_wc():
@@ -234,22 +243,9 @@ def __check_topic_docs_wc():
         topic_words.append(idxs)
         print(i, ' '.join([tm.vocab[i] for i in idxs]))
 
-    __merge_topics_by_topic_words(topic_words, tm.n_topics)
-    # matched_lists = [list() for _ in range(tm.n_topics)]
-    # for i in range(tm.n_topics):
-    #     words1 = topic_words[i]
-    #     for j in range(i + 1, tm.n_topics):
-    #         words2 = topic_words[j]
-    #         mcnt = 0
-    #         for w1 in words1:
-    #             if w1 in words2:
-    #                 mcnt += 1
-    #         if mcnt > 1:
-    #             matched_lists[i].append(j)
-
     # all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
     # name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_FILE)
-    # doc_idxs = name_doc_dict['曹操']
+    # doc_idxs = name_doc_dict[name]
     # contents = [all_doc_contents[idx] for idx in doc_idxs]
     # print(len(contents), 'docs')
     #
@@ -268,8 +264,42 @@ def __check_topic_docs_wc():
     #     print(i, docs)
 
 
+def __wc_topic_merge_with_word_match():
+    df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
+    for ch_name, en_name in df.itertuples(False, None):
+        print(ch_name)
+        # if en_name != 'cc':
+        #     continue
+
+        vocab_file = os.path.join(WC_DATADIR, '{}_vocab.txt'.format(en_name))
+        topic_file = os.path.join(WC_DATADIR, '{}_topics.txt'.format(en_name))
+        tm = TopicModel(vocab_file, topic_file)
+        print(len(tm.vocab), 'words in vocab')
+
+        n_topic_words = 10
+        topic_words = list()
+        for i, t in enumerate(tm.topics):
+            idxs = np.argpartition(-t, range(n_topic_words))[:n_topic_words]
+            topic_words.append(idxs)
+            print(i, ' '.join([tm.vocab[i] for i in idxs]))
+
+        comps = __merge_topics_by_topic_words(topic_words, tm.n_topics)
+        print(comps)
+        new_topics = __get_merged_topics(comps, tm.topics)
+        n_topic_words = 10
+        topic_words = list()
+        for i, t in enumerate(new_topics):
+            idxs = np.argpartition(-t, range(n_topic_words))[:n_topic_words]
+            topic_words.append(idxs)
+            print(i, ' '.join([tm.vocab[i] for i in idxs]))
+        print()
+
+        # break
+
+
 if __name__ == '__main__':
     # __check_coherences()
     # __check_doc_dists()
     # __check_topic_match()
-    __check_topic_docs_wc()
+    # __check_topic_docs_wc()
+    __wc_topic_merge_with_word_match()

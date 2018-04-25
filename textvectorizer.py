@@ -8,7 +8,7 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 SPECIAL_WORDS = frozenset([
     '-lsb-', '-rsb-', '*', ';', '#', '·', '$', '`', '>', '%', '\\', '/', '--', '&', '"',
     '.', '+', '【', '】', '★', '「', '」', '…', '[', ']', '(', ')', '!', '◆', '▌', ',',
-    '-'
+    '-', '|', '①', '—', '='
 ])
 
 
@@ -51,7 +51,8 @@ def gen_df(docs_file, dst_file, to_lower=False, rm_one_time_words=True):
 
 
 class CountVectorizer:
-    def __init__(self, vocab_arg, remove_stopwords=False, remove_special_words=True, words_exist=None):
+    def __init__(self, vocab_arg, remove_stopwords=False, remove_special_words=True, words_exist=None,
+                 extra_exclude_words=None):
         self.vocab = list()
         self.word_cnts = dict()
 
@@ -65,6 +66,8 @@ class CountVectorizer:
                 if remove_special_words and w in SPECIAL_WORDS:
                     continue
                 if words_exist is not None and w not in words_exist:
+                    continue
+                if extra_exclude_words is not None and w in extra_exclude_words:
                     continue
                 self.word_cnts[w] = cnt
                 self.vocab.append(w)

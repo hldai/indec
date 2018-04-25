@@ -53,15 +53,22 @@ def __gen_name_to_doc_file(entity_names_file, doc_file, dst_file):
 
 
 def __gen_docs_with_specific_name():
-    all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_NODUP_FILE)
-    name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_ND_FILE)
-    doc_idxs = name_doc_dict['曹操']
-    contents = [all_doc_contents[idx] for idx in doc_idxs]
-    print(len(contents), 'docs')
-    fout = open('d:/data/indec/cc.txt', 'w', encoding='utf-8', newline='\n')
-    for text in contents:
-        fout.write('{}\n'.format(text.strip()))
-    fout.close()
+    df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
+    for ch_name, en_name in df.itertuples(False, None):
+        if en_name != 'xhd':
+            continue
+
+        all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_NODUP_FILE)
+        name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_ND_FILE)
+        doc_idxs = name_doc_dict[ch_name]
+        contents = [all_doc_contents[idx] for idx in doc_idxs]
+        print(len(contents), 'docs')
+        fout = open('d:/data/indec/{}.txt'.format(en_name), 'w', encoding='utf-8', newline='\n')
+        for text in contents:
+            fout.write('{}\n'.format(text.strip()))
+        fout.close()
+
+        break
 
 
 def __filter_duplicate_docs():
@@ -84,16 +91,19 @@ def __filter_duplicate_docs():
             if j in dup_docs:
                 continue
             sim = cosine_similarity(x1, X[j])
-            if sim > 0.9:
+            # if 0.8 < sim < 0.9:
+            #     print(i, j, sim)
+            if sim > 0.8:
                 dup_docs.add(j)
 
         # if i == 5:
         #     break
 
+    # exit()
     doc_info_df = pd.read_csv(doc_file)
     dup_docs_list = list(dup_docs)
     dup_docs_list.sort()
-    print(dup_docs_list[:100])
+    print(dup_docs_list[:30])
     df_fil = doc_info_df.drop(dup_docs_list)
     with open(WC_DOC_INFO_NODUP_FILE, 'w', encoding='utf-8', newline='\n') as fout:
         df_fil.to_csv(fout, index=False)
