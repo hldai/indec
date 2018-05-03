@@ -1,12 +1,11 @@
 from numpy.ctypeslib import ndpointer
 import ctypes
 
-sellib = ctypes.CDLL('d:/projects/cpp/indeclib/x64/Release/indeclib.dll')
-sellib.get_log_probs.argtypes = [
-    ctypes.c_int, ctypes.c_int,
-]
-sellib.get_log_probs.restype = ctypes.c_float
-
-a, b = 3, 4
-c = sellib.cosine_sim_from_vec_list(a, b)
-print(c)
+t = 0
+for i in range(21):
+    m = t % 60
+    h = t // 60 + 12
+    m1 = (t + 10) % 60
+    h1 = (t + 10) // 60 + 12
+    print('{}, {}:{:02d}-{}:{:02d}'.format(i + 1, h, m, h1, m1))
+    t += 10
