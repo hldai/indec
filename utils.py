@@ -1,4 +1,12 @@
 import json
+import math
+
+
+def log_factorial(x):
+    r = 0
+    for i in range(1, x + 1):
+        r += math.log(i)
+    return r
 
 
 def read_lines_to_list(filename):
