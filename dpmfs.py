@@ -8,6 +8,7 @@ from config import *
 
 class DPMFS:
     def __init__(self, n_words, N, n_docs):
+        self.N = N
         self.n_words = n_words
         self.n_docs = n_docs
         self.gamma = np.random.randint(0, 2, n_words, np.int32)
@@ -19,6 +20,18 @@ class DPMFS:
         self.r2 = 5
 
     def fit(self, X):
+        Xt = X.transpose().tocsr()
+        f_x = self.__log_likelihood_docs(X, Xt)
+        p_gamma = self.__log_prior_gamma()
+        print(f_x, p_gamma)
+
+    def __log_prior_gamma(self):
+        r = 0
+        for j in range(self.n_words):
+            r += self.gamma[j] * np.log(self.omega) + (1 - self.gamma[j]) * np.log(1 - self.omega)
+        return r
+
+    def __log_likelihood_docs(self, X, Xt):
         Ti_log_sum = 0
         for i, x in enumerate(X):
             s_x, s_xgamma1, s_xgamma2 = 0, 0, 0
@@ -38,14 +51,48 @@ class DPMFS:
                 tmp2 += v * (1 - self.gamma[j])
         tmp2 += tmp1
         S1_log = scipy.special.loggamma(tmp1) - scipy.special.loggamma(tmp2)
-        print(Ti_log_sum, S1_log)
 
         S2_log = 0
-        for j in range(self.n_words):
+        for j, xj in enumerate(Xt):
             if self.gamma[j] == 1:
                 continue
-            tmp1 = 0
-            # TODO
+            S2_log += scipy.special.loggamma(np.sum(xj.data) + self.lamb[j])
+            S2_log -= scipy.special.loggamma(self.lamb[j])
+
+        Q_log = 0
+        for j in range(self.n_words):
+            Q_log += self.lamb[j] * self.gamma[j]
+        Q_log = scipy.special.loggamma(Q_log)
+        for j in range(self.n_words):
+            if self.gamma[j] == 0:
+                continue
+            Q_log -= scipy.special.loggamma(self.gamma[j])
+
+        Rk_sum_log = 0
+        for k in range(self.N):
+            Rk_log = 0
+            for j, xj in enumerate(Xt):
+                if self.gamma[j] == 1:
+                    continue
+                tmp1 = 0
+                for i, v in zip(xj.indices, xj.data):
+                    if self.z[i] == k:
+                        tmp1 += v
+                tmp1 += self.lamb[j]
+                Rk_log += scipy.special.loggamma(tmp1)
+            tmp2 = 0
+            for i, xi in enumerate(X):
+                if self.z[i] != k:
+                    continue
+                for j, xij in zip(xi.indices, xi.data):
+                    tmp2 += xij * self.gamma[j]
+            for j in range(self.n_words):
+                tmp2 += self.lamb[j] * self.gamma[j]
+            Rk_log -= scipy.special.loggamma(tmp2)
+            Rk_sum_log += Rk_log
+
+        r = Ti_log_sum + S1_log + S2_log + Q_log + Rk_sum_log
+        return r.real
 
 
 def __run_quora():
