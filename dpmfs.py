@@ -1,6 +1,6 @@
 import numpy as np
 import scipy
-import math
+import argparse
 from collections import Counter
 import utils
 import textvectorizer
@@ -8,7 +8,7 @@ from config import *
 
 
 class DPMFS:
-    def __init__(self, n_words, N, n_docs, n_iter):
+    def __init__(self, n_words, N, n_docs, n_iter, lamb=0.5):
         self.N = N
         self.n_words = n_words
         self.n_docs = n_docs
@@ -16,13 +16,14 @@ class DPMFS:
         self.z = np.random.randint(1, N + 1, n_docs, np.int32)
         self.eta = np.zeros((self.N + 1, self.n_words), np.float32)
         self.omega = 0.1
-        self.lamb = np.ones(n_words, np.float32) * 0.5
+        self.lamb = np.ones(n_words, np.float32) * lamb
         self.alpha = 0.1
         self.r1 = 5
         self.r2 = 5
         self.n_iter = n_iter
 
-    def fit(self, X):
+    def fit(self, X, log_file=None):
+        print('lamb={}, alpha={}, omega={}'.format(self.lamb[0], self.alpha, self.omega))
         Xt = X.transpose().tocsr()
         for it in range(self.n_iter):
             self.__update_gamma(X, Xt)
@@ -31,8 +32,9 @@ class DPMFS:
             self.__update_lamb(Xt)
             # print(self.z)
             print(it, Counter(self.z))
-            if it % 50 == 0:
-                np.savetxt(dst_file, self.z, fmt='%d')
+            if it % 2 == 0 and log_file is not None:
+                print('save z to {}'.format(log_file))
+                np.savetxt(log_file, self.z, fmt='%d')
 
     def __update_lamb(self, Xt):
         dir_params = np.zeros(self.n_words, np.float32)
@@ -210,12 +212,19 @@ def __run_quora():
     print(len(cv.vocab), 'words in vocab')
     X = cv.get_vecs(contents)
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-lamb", "--lamb", type=float)
+    args = parser.parse_args()
+    lamb = 0.5 if args.lamb is None else args.lamb
+
+    dst_file = os.path.join(QUORA_DATA_DIR, 'dpmfs_z_{}.txt'.format(lamb))
+    print(dst_file)
+
     n_docs = len(doc_idxs)
-    dpmfs = DPMFS(cv.n_words, 30, n_docs, n_iter=1000)
-    dpmfs.fit(X)
+    dpmfs = DPMFS(cv.n_words, 30, n_docs, n_iter=1000, lamb=lamb)
+    dpmfs.fit(X, dst_file)
     np.savetxt(dst_file, dpmfs.z, fmt='%d')
 
 
 if __name__ == '__main__':
-    dst_file = os.path.join(QUORA_DATA_DIR, 'dpmfs_z.txt')
     __run_quora()

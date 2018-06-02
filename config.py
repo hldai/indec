@@ -2,6 +2,7 @@ import os
 
 WC_DATADIR = 'd:/data/indec'
 QUORA_DATA_DIR = 'd:/data/quora'
+# QUORA_DATA_DIR = '/home/data/hldai/quora'
 
 QUORA_DATA_FILE = os.path.join(QUORA_DATA_DIR, 'quora-user-qa.json')
 
