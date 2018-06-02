@@ -8,7 +8,7 @@ from config import *
 
 
 class DPMFS:
-    def __init__(self, n_words, N, n_docs):
+    def __init__(self, n_words, N, n_docs, n_iter):
         self.N = N
         self.n_words = n_words
         self.n_docs = n_docs
@@ -20,16 +20,19 @@ class DPMFS:
         self.alpha = 0.1
         self.r1 = 5
         self.r2 = 5
+        self.n_iter = n_iter
 
     def fit(self, X):
         Xt = X.transpose().tocsr()
-        for _ in range(100):
+        for it in range(self.n_iter):
             self.__update_gamma(X, Xt)
             self.__update_eta(X)
             self.__update_z(X)
             self.__update_lamb(Xt)
             # print(self.z)
-            print(Counter(self.z))
+            print(it, Counter(self.z))
+            if it % 50 == 0:
+                np.savetxt(dst_file, self.z, fmt='%d')
 
     def __update_lamb(self, Xt):
         dir_params = np.zeros(self.n_words, np.float32)
@@ -208,9 +211,11 @@ def __run_quora():
     X = cv.get_vecs(contents)
 
     n_docs = len(doc_idxs)
-    dpmfs = DPMFS(cv.n_words, 30, n_docs)
+    dpmfs = DPMFS(cv.n_words, 30, n_docs, n_iter=1000)
     dpmfs.fit(X)
+    np.savetxt(dst_file, dpmfs.z, fmt='%d')
 
 
 if __name__ == '__main__':
+    dst_file = os.path.join(QUORA_DATA_DIR, 'dpmfs_z.txt')
     __run_quora()
