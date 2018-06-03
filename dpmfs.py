@@ -37,14 +37,25 @@ class DPMFS:
                 np.savetxt(log_file, self.z, fmt='%d')
 
     def __update_lamb(self, Xt):
-        dir_params = np.zeros(self.n_words, np.float32)
+        gamma_indices_neg = [i for i, v in enumerate(self.gamma) if v == 0]
+        w_idx_dict = {v: i for i, v in enumerate(gamma_indices_neg)}
+        n_neg = len(gamma_indices_neg)
+
+        dir_params = np.zeros(n_neg, np.float32)
+        for i, l in enumerate(gamma_indices_neg):
+            dir_params[i] = (1 - self.gamma[l]) * self.lamb[l]
+
         for l, xt in enumerate(Xt):
+            if l not in w_idx_dict:
+                continue
             sum_tmp = 0
             for i, xil in zip(xt.indices, xt.data):
                 sum_tmp += xil
-            dir_params[l] = (1 - self.gamma[l]) * (sum_tmp + self.gamma[l])
+            dir_params[w_idx_dict[l]] += (1 - self.gamma[l]) * sum_tmp
         eta0_new = np.random.dirichlet(dir_params, 1)[0]
-        self.eta[0] = eta0_new
+        for idx, v in zip(gamma_indices_neg, eta0_new):
+            self.eta[0][idx] = v
+        # self.eta[0] = eta0_new
 
     def __update_z(self, X):
         for i in range(self.n_docs):
@@ -89,11 +100,18 @@ class DPMFS:
         return result
 
     def __update_eta(self, X):
+        gamma_indices_pos = [i for i, v in enumerate(self.gamma) if v == 1]
+        w_idx_dict = {idx: i for i, idx in enumerate(gamma_indices_pos)}
+        n_pos = len(gamma_indices_pos)
+
         z_set = set(self.z)
         k_neg = [k for k in range(1, self.N + 1) if k not in z_set]
         for i, k in enumerate(k_neg):
-            eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in range(self.n_words)])[0]
-            self.eta[k] = eta_new
+            eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in gamma_indices_pos])[0]
+            for idx, v in zip(gamma_indices_pos, eta_new):
+                self.eta[k][idx] = v
+            # eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in range(self.n_words)])[0]
+            # self.eta[k] = eta_new
 
         z_doc_dict = {k: list() for k in range(1, self.N + 1)}
         for i, zk in enumerate(self.z):
@@ -102,15 +120,22 @@ class DPMFS:
             if not docs:
                 continue
 
-            params = np.zeros(self.n_words, np.float32)
-            for l in range(self.n_words):
-                params[l] = self.lamb[l] * self.gamma[l]
+            params = np.zeros(n_pos, np.float32)
+            for idx, l in enumerate(gamma_indices_pos):
+                params[idx] = self.lamb[l] * self.gamma[l]
+                # if params[idx] <= 0:
+                #     print('ddd', params[idx])
             for j in docs:
                 xj = X[j]
-                for w_idx, v in zip(xj.indices, xj.data):
-                    params[w_idx] += v * self.gamma[w_idx]
+                for l, v in zip(xj.indices, xj.data):
+                    if l not in w_idx_dict:
+                        continue
+                    params[w_idx_dict[l]] += v * self.gamma[l]
+            # print(params)
             eta_new = np.random.dirichlet(params, 1)[0]
-            self.eta[k] = eta_new
+            for idx, v in zip(gamma_indices_pos, eta_new):
+                self.eta[k][idx] = v
+            # self.eta[k] = eta_new
 
     def __update_gamma(self, X, Xt):
         for i in range(self.r1):
