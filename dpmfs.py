@@ -52,7 +52,7 @@ class DPMFS:
             for i, xil in zip(xt.indices, xt.data):
                 sum_tmp += xil
             dir_params[w_idx_dict[l]] += (1 - self.gamma[l]) * sum_tmp
-        eta0_new = np.random.dirichlet(dir_params, 1)[0]
+        eta0_new = np.random.dirichlet(dir_params)
         for idx, v in zip(gamma_indices_neg, eta0_new):
             self.eta[0][idx] = v
         # self.eta[0] = eta0_new
@@ -108,10 +108,9 @@ class DPMFS:
         k_neg = [k for k in range(1, self.N + 1) if k not in z_set]
         for k in k_neg:
             eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in gamma_indices_pos])
+            self.eta[k] = np.zeros(self.n_words)
             for idx, v in zip(gamma_indices_pos, eta_new):
                 self.eta[k][idx] = v
-            # eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in range(self.n_words)])[0]
-            # self.eta[k] = eta_new
 
         z_doc_dict = {k: list() for k in range(1, self.N + 1)}
         for i, zk in enumerate(self.z):
@@ -127,12 +126,13 @@ class DPMFS:
                 #     print('ddd', params[idx])
             for j in docs:
                 xj = X[j]
-                for l, v in zip(xj.indices, xj.data):
+                for l, xjl in zip(xj.indices, xj.data):
                     if l not in w_idx_dict:
                         continue
-                    params[w_idx_dict[l]] += v * self.gamma[l]
+                    params[w_idx_dict[l]] += xjl * self.gamma[l]
             # print(params)
             eta_new = np.random.dirichlet(params)
+            self.eta[k] = np.zeros(self.n_words)
             for idx, v in zip(gamma_indices_pos, eta_new):
                 self.eta[k][idx] = v
             # self.eta[k] = eta_new
@@ -166,19 +166,20 @@ class DPMFS:
         for i, x in enumerate(X):
             s_x, s_xgamma1, s_xgamma2 = 0, 0, 0
             # print(' '.join([str(j) for j in x.indices]))
-            for j, v in zip(x.indices, x.data):
-                s_xgamma1 += v * self.gamma[j]
-                s_xgamma2 += v * (1 - self.gamma[j])
-                s_x += v
-            Ti_log = utils.log_factorial(s_xgamma1) + utils.log_factorial(s_xgamma2) - utils.log_factorial(s_x)
+            for j, xij in zip(x.indices, x.data):
+                s_xgamma1 += xij * self.gamma[j]
+                s_xgamma2 += xij * (1 - self.gamma[j])
+                s_x += utils.log_factorial(xij)
+            # Ti_log = utils.log_factorial(s_xgamma1) + utils.log_factorial(s_xgamma2) - utils.log_factorial(s_x)
+            Ti_log = utils.log_factorial(s_xgamma1) + utils.log_factorial(s_xgamma2) - s_x
             Ti_log_sum += Ti_log
 
         tmp1, tmp2 = 0, 0
         for j in range(self.n_words):
             tmp1 += self.lamb[j] * (1 - self.gamma[j])
         for i, x in enumerate(X):
-            for j, v in zip(x.indices, x.data):
-                tmp2 += v * (1 - self.gamma[j])
+            for j, xij in zip(x.indices, x.data):
+                tmp2 += xij * (1 - self.gamma[j])
         tmp2 += tmp1
         S1_log = scipy.special.loggamma(tmp1) - scipy.special.loggamma(tmp2)
 
@@ -196,13 +197,15 @@ class DPMFS:
         for j in range(self.n_words):
             if self.gamma[j] == 0:
                 continue
-            Q_log -= scipy.special.loggamma(self.gamma[j])
+            Q_log -= scipy.special.loggamma(self.lamb[j])
+        z_vals = set(self.z)
+        Q_log = len(z_vals) * Q_log
 
         Rk_sum_log = 0
         for k in range(self.N):
             Rk_log = 0
             for j, xj in enumerate(Xt):
-                if self.gamma[j] == 1:
+                if self.gamma[j] == 0:
                     continue
                 tmp1 = 0
                 for i, v in zip(xj.indices, xj.data):
