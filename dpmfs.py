@@ -12,10 +12,17 @@ class DPMFS:
         self.N = N
         self.n_words = n_words
         self.n_docs = n_docs
-        self.gamma = np.random.randint(0, 2, n_words, np.int32)
         self.z = np.random.randint(1, N + 1, n_docs, np.int32)
         self.eta = np.zeros((self.N + 1, self.n_words), np.float32)
-        self.omega = 0.1
+        self.omega = 0.05
+
+        # self.gamma = np.random.randint(0, 2, n_words, np.int32)
+        self.gamma = np.zeros(n_words, np.int32)
+        rand_v = np.random.uniform(0, 1, n_words)
+        for i, v in enumerate(rand_v):
+            if v < self.omega:
+                self.gamma[i] = 1
+
         self.lamb = np.ones(n_words, np.float32) * lamb
         self.alpha = 0.1
         self.r1 = 5
@@ -31,8 +38,8 @@ class DPMFS:
             self.__update_z(X)
             self.__update_lamb(Xt)
             # print(self.z)
-            print(it, Counter(self.z))
-            if it % 5 == 0 and log_file is not None:
+            print(it, np.sum(self.gamma), Counter(self.z))
+            if it % 10 == 0 and log_file is not None:
                 print('save z to {}'.format(log_file))
                 np.savetxt(log_file, self.z, fmt='%d')
 
@@ -77,10 +84,11 @@ class DPMFS:
                 f_xgamma_cur = self.__f_xgamma(x, self.eta[self.z[i]])
 
                 d = f_xgamma_new - f_xgamma_cur
-                # print(self.eta[zi_new])
-                # print(self.eta[self.z[i]])
-                # print(zi_new, self.z[i], f_xgamma_new, f_xgamma_cur)
-                # print(np.exp(d))
+                # print(zi_new, self.z[i], f_xgamma_new, f_xgamma_cur, np.exp(d))
+                # for k in range(1, self.N + 1):
+                #     tmp = self.__f_xgamma(x, self.eta[k])
+                #     print(self.z[i], k, f_xgamma_cur, tmp, np.exp(tmp - f_xgamma_cur))
+
                 if d > 0:
                     self.z[i] = zi_new
                 else:
@@ -242,14 +250,16 @@ def __run_quora():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-lamb", "--lamb", type=float)
+    parser.add_argument("-N", "--N", type=int)
     args = parser.parse_args()
     lamb = 1 if args.lamb is None else args.lamb
+    N = 10 if args.N is None else args.N
 
     dst_file = os.path.join(QUORA_DATA_DIR, 'dpmfs_z_{}.txt'.format(lamb))
     print(dst_file)
 
     n_docs = len(doc_idxs)
-    dpmfs = DPMFS(cv.n_words, 30, n_docs, n_iter=1000, lamb=lamb)
+    dpmfs = DPMFS(cv.n_words, N=N, n_docs=n_docs, n_iter=1000, lamb=lamb)
     dpmfs.fit(X, dst_file)
     np.savetxt(dst_file, dpmfs.z, fmt='%d')
 
