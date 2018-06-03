@@ -32,7 +32,7 @@ class DPMFS:
             self.__update_lamb(Xt)
             # print(self.z)
             print(it, Counter(self.z))
-            if it % 2 == 0 and log_file is not None:
+            if it % 5 == 0 and log_file is not None:
                 print('save z to {}'.format(log_file))
                 np.savetxt(log_file, self.z, fmt='%d')
 
@@ -106,8 +106,8 @@ class DPMFS:
 
         z_set = set(self.z)
         k_neg = [k for k in range(1, self.N + 1) if k not in z_set]
-        for i, k in enumerate(k_neg):
-            eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in gamma_indices_pos])[0]
+        for k in k_neg:
+            eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in gamma_indices_pos])
             for idx, v in zip(gamma_indices_pos, eta_new):
                 self.eta[k][idx] = v
             # eta_new = np.random.dirichlet([self.lamb[i] * self.gamma[i] for i in range(self.n_words)])[0]
@@ -132,7 +132,7 @@ class DPMFS:
                         continue
                     params[w_idx_dict[l]] += v * self.gamma[l]
             # print(params)
-            eta_new = np.random.dirichlet(params, 1)[0]
+            eta_new = np.random.dirichlet(params)
             for idx, v in zip(gamma_indices_pos, eta_new):
                 self.eta[k][idx] = v
             # self.eta[k] = eta_new
@@ -240,7 +240,7 @@ def __run_quora():
     parser = argparse.ArgumentParser()
     parser.add_argument("-lamb", "--lamb", type=float)
     args = parser.parse_args()
-    lamb = 0.5 if args.lamb is None else args.lamb
+    lamb = 1 if args.lamb is None else args.lamb
 
     dst_file = os.path.join(QUORA_DATA_DIR, 'dpmfs_z_{}.txt'.format(lamb))
     print(dst_file)
