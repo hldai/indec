@@ -29,7 +29,7 @@ class DPMFS:
         self.r2 = 5
         self.n_iter = n_iter
 
-    def fit(self, X, log_file=None):
+    def fit(self, X, log_file=None, vocab=None):
         print('lamb={}, alpha={}, omega={}'.format(self.lamb[0], self.alpha, self.omega))
         Xt = X.transpose().tocsr()
         for it in range(self.n_iter):
@@ -42,6 +42,24 @@ class DPMFS:
             if it % 10 == 0 and log_file is not None:
                 print('save z to {}'.format(log_file))
                 np.savetxt(log_file, self.z, fmt='%d')
+                self.__print_topics(X, vocab)
+
+    def __print_topics(self, X, vocab):
+        topic_word_cnts = np.zeros((self.N + 1, self.n_words), np.int32)
+        for i, (x, k) in enumerate(zip(X, self.z)):
+            for w, v in zip(x.indices, x.data):
+                if self.gamma[w] == 0:
+                    continue
+                # print(k, w)
+                topic_word_cnts[k][w] += v
+
+        for k in range(self.N):
+            n_sum = np.sum(topic_word_cnts[k])
+            if n_sum == 0:
+                continue
+            idxs = np.argpartition(-topic_word_cnts[k], range(10))[:10]
+            words = [vocab[idx] for idx in idxs]
+            print(k, ' '.join(words))
 
     def __update_lamb(self, Xt):
         gamma_indices_neg = [i for i, v in enumerate(self.gamma) if v == 0]
@@ -260,7 +278,7 @@ def __run_quora():
 
     n_docs = len(doc_idxs)
     dpmfs = DPMFS(cv.n_words, N=N, n_docs=n_docs, n_iter=1000, lamb=lamb)
-    dpmfs.fit(X, dst_file)
+    dpmfs.fit(X, dst_file, cv.vocab)
     np.savetxt(dst_file, dpmfs.z, fmt='%d')
 
 
