@@ -17,6 +17,14 @@ WC_SEG_DOC_CONTENT_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-content-seg-n
 WC_DF_ND_FILE = os.path.join(WC_DATADIR, 'docs-14k-words-df.txt')
 WC_NAME_DOC_ND_FILE = os.path.join(WC_DATADIR, 'name-doc-nd.txt')
 WC_ENTITY_NAMES_FILE = os.path.join(WC_DATADIR, 'entity-names.txt')
+WC_SENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-sents.txt')
+WC_MINIDOC_INFO_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-info.txt')
+WC_MINIDOC_TEXT_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text.txt')
+WC_MINIDOC_TEXT_SEG_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text-seg.txt')
+WC_MINIDOC_INFO_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-info-nodup.txt')
+WC_MINIDOC_TEXT_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text-nodup.txt')
+WC_MINIDOC_TEXT_SEG_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text-seg-nodup.txt')
+
 
 QUORA_ANSWER_CONTENT_FILE = os.path.join(QUORA_DATA_DIR, 'answer-text.txt')
 QUORA_ANSWER_NER_FILE = os.path.join(QUORA_DATA_DIR, 'answer-text-ner.txt')

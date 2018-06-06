@@ -79,3 +79,9 @@ def remove_lines(src_file, lines, dst_file):
         fout.write(line)
     f.close()
     fout.close()
+
+
+def load_json_objs(filename):
+    with open(filename, encoding='utf-8') as f:
+        objs = [json.loads(line) for line in f]
+    return objs
