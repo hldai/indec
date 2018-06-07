@@ -267,12 +267,12 @@ def __check_topic_docs_wc():
 def __wc_topic_merge_with_word_match():
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
     for ch_name, en_name in df.itertuples(False, None):
-        print(ch_name)
         # if en_name != 'cc':
         #     continue
 
-        vocab_file = os.path.join(WC_DATADIR, '{}_vocab.txt'.format(en_name))
-        topic_file = os.path.join(WC_DATADIR, '{}_topics.txt'.format(en_name))
+        print(ch_name)
+        vocab_file = os.path.join(WC_DATADIR, 'entity-data/{}_vocab.txt'.format(en_name))
+        topic_file = os.path.join(WC_DATADIR, 'entity-data/{}_topics.txt'.format(en_name))
         tm = TopicModel(vocab_file, topic_file)
         print(len(tm.vocab), 'words in vocab')
 

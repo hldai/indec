@@ -55,6 +55,7 @@ class TOPDMM:
             for w, cnt in zip(x_tmp.indices, x_tmp.data):
                 N_k_w[k, w] = N_k_w[k, w] + cnt
 
+        min_perp = -1e9
         for it in range(self.n_iter):
             # st = 0
             # t = time()
@@ -75,9 +76,15 @@ class TOPDMM:
                 for w, cnt in zip(x.indices, x.data):
                     N_k_w[k_new, w] += cnt
             # print(time() - t, st)
+            perp = self.__perplexity(X, N_k_w, N_d, M_k, N_k)
+            if perp > min_perp:
+                min_perp = perp
+                self.topic_word_ = N_k_w + self.beta
+                print('iter {}, perplexity={}'.format(it, perp))
             if it % 5 == 0:
-                print('iter {}, perplexity={}'.format(it, self.__perplexity(X, N_k_w, N_d, M_k, N_k)))
-        self.topic_word_ = N_k_w + self.beta
+                # perp = self.__perplexity(X, N_k_w, N_d, M_k, N_k)
+                print('iter {}, perplexity={}'.format(it, perp))
+        # self.topic_word_ = N_k_w + self.beta
 
     def __calc_probs(self, N_k_w, x, N_dd, M_k, N_k):
         log_probs = np.zeros(self.n_topics, np.float32)
@@ -215,14 +222,47 @@ def __topdmm_wc(name, dst_vocab_file, dst_topics_file):
     dmm.save(cv.vocab, dst_vocab_file, dst_topics_file)
 
 
+def __topdmm_wc_minidocs(name, dst_vocab_file, dst_topics_file):
+    all_doc_contents = utils.read_lines_to_list(WC_MINIDOC_TEXT_SEG_NODUP_FILE)
+    name_doc_dict = utils.load_entity_name_to_minidoc_file(WC_MINIDOC_INFO_NODUP_FILE)
+    doc_idxs = name_doc_dict[name]
+    contents = [all_doc_contents[idx] for idx in doc_idxs]
+    print(len(contents), 'docs')
+
+    docs_words = [content.split(' ') for content in contents]
+    words_exist = utils.get_word_set(docs_words)
+    extra_exclude_words = {name}
+    if name == '姜子牙':
+        extra_exclude_words = {'姜', '子牙'}
+    cv = textvectorizer.CountVectorizer((WC_DF_ND_FILE, 20, 700), remove_stopwords=True, words_exist=words_exist,
+                                        extra_exclude_words=extra_exclude_words)
+    print(len(cv.vocab), 'words in vocab')
+    X = cv.get_vecs(contents, normalize=False)
+    # D_codoc = utils.get_codoc_matrix(cv.vocab, contents)
+
+    n_topic_words_disp = 10
+    print('starting training ...')
+    # for k in range(10, 11):
+    k = 10
+    dmm = TOPDMM(k, 80, alpha=0.01, beta=0.01, n_top=-1)
+    dmm.fit(X)
+    for t in dmm.topic_word_:
+        widxs = np.argpartition(-t, range(n_topic_words_disp))[:n_topic_words_disp]
+        topic_words = [cv.vocab[i] for i in widxs]
+        print(' '.join(topic_words))
+
+    dmm.save(cv.vocab, dst_vocab_file, dst_topics_file)
+
+
 def __run_with_wc():
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
     for ch_name, en_name in df.itertuples(False, None):
         # if en_name != 'cc':
         #     continue
-        dst_vocab_file = os.path.join(WC_DATADIR, '{}_vocab.txt'.format(en_name))
-        dst_topic_file = os.path.join(WC_DATADIR, '{}_topics.txt'.format(en_name))
-        __topdmm_wc(ch_name, dst_vocab_file, dst_topic_file)
+        dst_vocab_file = os.path.join(WC_DATADIR, 'entity-data/{}_vocab.txt'.format(en_name))
+        dst_topic_file = os.path.join(WC_DATADIR, 'entity-data/{}_topics.txt'.format(en_name))
+        # __topdmm_wc(ch_name, dst_vocab_file, dst_topic_file)
+        __topdmm_wc_minidocs(ch_name, dst_vocab_file, dst_topic_file)
         # break
 
     # all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_NODUP_FILE)

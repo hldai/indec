@@ -21,7 +21,7 @@ WC_SENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-sents.txt')
 WC_MINIDOC_INFO_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-info.txt')
 WC_MINIDOC_TEXT_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text.txt')
 WC_MINIDOC_TEXT_SEG_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text-seg.txt')
-WC_MINIDOC_INFO_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-info-nodup.txt')
+WC_MINIDOC_INFO_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-info-nodup.csv')
 WC_MINIDOC_TEXT_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text-nodup.txt')
 WC_MINIDOC_TEXT_SEG_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text-seg-nodup.txt')
 

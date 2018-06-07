@@ -30,6 +30,19 @@ def load_entity_name_to_doc_file(filename):
     return name_doc_dict
 
 
+def load_entity_name_to_minidoc_file(minidoc_info_file):
+    import pandas as pd
+
+    name_doc_dict = dict()
+    df = pd.read_csv(minidoc_info_file)
+    for mdid, doc_id, entity_name in df.itertuples(False, None):
+        mdids = name_doc_dict.get(entity_name, list())
+        if not mdids:
+            name_doc_dict[entity_name] = mdids
+        mdids.append(mdid)
+    return name_doc_dict
+
+
 def get_word_set(docs):
     words = set()
     for doc in docs:

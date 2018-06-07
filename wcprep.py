@@ -75,6 +75,25 @@ def __gen_docs_with_specific_name():
         break
 
 
+def __gen_minidocs_with_specific_name():
+    df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
+    name_doc_dict = utils.load_entity_name_to_minidoc_file(WC_MINIDOC_INFO_NODUP_FILE)
+    for ch_name, en_name in df.itertuples(False, None):
+        if en_name != 'swk':
+            continue
+
+        all_doc_contents = utils.read_lines_to_list(WC_MINIDOC_TEXT_NODUP_FILE)
+        doc_idxs = name_doc_dict[ch_name]
+        contents = [all_doc_contents[idx] for idx in doc_idxs]
+        print(len(contents), 'docs')
+        fout = open('d:/data/indec/entity-data/{}-mini.txt'.format(en_name), 'w', encoding='utf-8', newline='\n')
+        for text in contents:
+            fout.write('{}\n'.format(text.strip()))
+        fout.close()
+
+        break
+
+
 def __filter_duplicate_docs():
     all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
     cv = textvectorizer.CountVectorizer((WC_DF_FILE, 100, 2000), remove_stopwords=True)
@@ -261,7 +280,8 @@ def __filter_duplicate_minidocs():
     dup_docs_list = list(dup_docs)
     dup_docs_list.sort()
     print(dup_docs_list[:30])
-    
+
+    # TODO mdid not correct
     df_fil = df_minidocs.drop(dup_docs_list)
     with open(WC_MINIDOC_INFO_NODUP_FILE, 'w', encoding='utf-8', newline='\n') as fout:
         df_fil.to_csv(fout, index=False)
@@ -285,4 +305,5 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # __gen_docs_with_specific_name()
 # __sent_split()
 # __gen_minidocs()
-__filter_duplicate_minidocs()
+# __filter_duplicate_minidocs()
+__gen_minidocs_with_specific_name()
