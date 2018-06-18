@@ -11,6 +11,8 @@ import topicmerge
 import textvectorizer
 from time import time
 
+EXCLUDE_WORDS_SET = {'4', '5', '首', ':', '靠', '代', '｜', '今'}
+
 sellib = ctypes.CDLL('d:/projects/cpp/indeclib/x64/Release/indeclib.dll')
 sellib.get_log_probs.argtypes = [
     ndpointer(ctypes.c_float), ndpointer(ctypes.c_int32), ndpointer(ctypes.c_int32), ctypes.c_int32,
@@ -223,15 +225,22 @@ def __topdmm_wc(name, dst_vocab_file, dst_topics_file):
 
 
 def __topdmm_wc_minidocs(name, dst_vocab_file, dst_topics_file):
-    all_doc_contents = utils.read_lines_to_list(WC_MINIDOC_TEXT_SEG_NODUP_FILE)
-    name_doc_dict = utils.load_entity_name_to_minidoc_file(WC_MINIDOC_INFO_NODUP_FILE)
+    # all_doc_contents = utils.read_lines_to_list(WC_MINIDOC_TEXT_SEG_NODUP_FILE)
+    # name_doc_dict = utils.load_entity_name_to_minidoc_file(WC_MINIDOC_INFO_NODUP_FILE)
+    all_doc_contents = utils.read_lines_to_list('d:/data/indec/docs-14k-minidocs-text-seg-new.txt')
+    name_doc_dict = utils.load_entity_name_to_minidoc_file('d:/data/indec/docs-14k-minidocs-info-new.txt')
     doc_idxs = name_doc_dict[name]
+    # print(max(doc_idxs), len(all_doc_contents))
     contents = [all_doc_contents[idx] for idx in doc_idxs]
     print(len(contents), 'docs')
 
+    common_words = utils.read_lines_to_list(COMMON_CH_WORDS_FILE)
+
     docs_words = [content.split(' ') for content in contents]
     words_exist = utils.get_word_set(docs_words)
-    extra_exclude_words = {name}
+    extra_exclude_words = set(common_words)
+    extra_exclude_words.add(name)
+    # extra_exclude_words = {name}
     if name == '姜子牙':
         extra_exclude_words = {'姜', '子牙'}
     cv = textvectorizer.CountVectorizer((WC_DF_ND_FILE, 20, 700), remove_stopwords=True, words_exist=words_exist,
@@ -255,10 +264,12 @@ def __topdmm_wc_minidocs(name, dst_vocab_file, dst_topics_file):
 
 
 def __run_with_wc():
+    en_names_wanted = ['cc', 'hx', 'swk']
+
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
     for ch_name, en_name in df.itertuples(False, None):
-        # if en_name != 'cc':
-        #     continue
+        if en_name not in en_names_wanted:
+            continue
         dst_vocab_file = os.path.join(WC_DATADIR, 'entity-data/{}_vocab.txt'.format(en_name))
         dst_topic_file = os.path.join(WC_DATADIR, 'entity-data/{}_topics.txt'.format(en_name))
         # __topdmm_wc(ch_name, dst_vocab_file, dst_topic_file)

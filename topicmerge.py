@@ -265,10 +265,11 @@ def __check_topic_docs_wc():
 
 
 def __wc_topic_merge_with_word_match():
+    en_names_wanted = ['cc', 'hx', 'swk']
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
     for ch_name, en_name in df.itertuples(False, None):
-        # if en_name != 'cc':
-        #     continue
+        if en_name not in en_names_wanted:
+            continue
 
         print(ch_name)
         vocab_file = os.path.join(WC_DATADIR, 'entity-data/{}_vocab.txt'.format(en_name))

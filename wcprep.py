@@ -11,6 +11,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 SENT_SEG_CHARS = '。.？?！!'
 SENT_SEG_CONTINUE_CHARS = '。.？?！!”'
 
+SUB_SENT_SEG_CHARS = '，？。.,、‘’“”、'
+
 
 def __fix_src_data():
     biz_ids, titles, contents = list(), list(), list()
@@ -290,6 +292,170 @@ def __filter_duplicate_minidocs():
     utils.remove_lines(WC_MINIDOC_TEXT_SEG_FILE, dup_docs, WC_MINIDOC_TEXT_SEG_NODUP_FILE)
 
 
+def __sent_visited_tfidf(sent_tfidf, vst_sent_tfidf_list):
+    for v in vst_sent_tfidf_list:
+        sim = cosine_similarity(sent_tfidf, v)
+        if sim > 0.9:
+            return True
+    return False
+
+
+def __sent_visited(sent, vst_sents):
+    for s in vst_sents:
+        if s == sent:
+            return True
+    return False
+
+
+def __find_duplicate(cur_text, texts):
+    sub_sents = re.split('[{}]+'.format(SUB_SENT_SEG_CHARS), cur_text)
+
+    tmp = list()
+    for s in sub_sents:
+        s = s.strip()
+        if s:
+            tmp.append(s)
+    sub_sents = tmp
+
+    if len(sub_sents) == 1:
+        for i, text in enumerate(texts):
+            if cur_text == text:
+                return i
+
+    min_match_num = 2
+    for i, text in enumerate(texts):
+        match_cnt = 0
+        for s in sub_sents:
+            if len(s) < 5:
+                continue
+            p = text.find(s)
+            if p < 0:
+                continue
+
+            if (p == 0 or text[p - 1] in SUB_SENT_SEG_CHARS) and (
+                    p + len(s) >= len(text) or text[p + len(s)] in SUB_SENT_SEG_CHARS):
+                match_cnt += 1
+                # print(s)
+                if match_cnt == min_match_num:
+                    break
+            # print(cur_text)
+            # print(i, text)
+            # exit()
+        if match_cnt == min_match_num:
+            return i
+
+    return -1
+
+
+def __minidocs_for_name(entity_name, fout_text, fout_seg_text):
+    print(entity_name)
+    n_context_sents = 2
+    # cv = textvectorizer.CountVectorizer((WC_DF_FILE, 100, 2000), remove_stopwords=True)
+    # name_sent_vecs = list()
+    name_sents = list()
+
+    doc_cnt, minidoc_cnt = 0, 0
+    minidocs_info_list = list()
+    minidoc_texts, minidoc_seg_texts = list(), list()
+    f = open(WC_SENT_FILE, encoding='utf-8')
+    f_seg = open(WC_SEG_SENT_FILE, encoding='utf-8')
+    while True:
+        doc_sents = __read_doc_sents(f)
+        doc_seg_sents = __read_doc_sents(f_seg)
+        if doc_sents is None:
+            break
+        # print(doc_sents)
+        i = 0
+        while i < len(doc_sents):
+            sent = doc_sents[i]
+            if entity_name not in sent:
+                i += 1
+                continue
+
+            # seg_sent = doc_seg_sents[i]
+            # sent_tfidf = cv.get_vec(seg_sent)
+
+            if __sent_visited(sent, name_sents):
+                # print(sent)
+                i += 1
+                continue
+
+            # name_sent_vecs.append(cv.get_vec(seg_sent))
+            name_sents.append(sent)
+
+            s_idx_beg = max(i - n_context_sents, 0)
+            p = i + 1
+            max_hit_pos = i
+            while p < len(doc_sents):
+                sent_tmp = doc_sents[p]
+                if entity_name in sent_tmp:
+                    # seg_sent_tmp = doc_seg_sents[p]
+                    # sent_tfidf_tmp = cv.get_vec(seg
+                    # _sent_tmp)
+                    if not __sent_visited(sent_tmp, name_sents):
+                        max_hit_pos = p
+                        # name_sent_vecs.append(sent_tfidf_tmp)
+                        name_sents.append(sent_tmp)
+                if p - max_hit_pos >= n_context_sents * 2:
+                    break
+                p += 1
+            i = p + 1
+            s_idx_end = min(max_hit_pos + n_context_sents + 1, len(doc_sents))
+
+            minidoc_text = ''.join(doc_sents[s_idx_beg:s_idx_end])
+            dup_idx = __find_duplicate(minidoc_text, minidoc_texts)
+            if dup_idx > -1:
+                # print(minidoc_text)
+                # print(minidoc_texts[dup_idx])
+                # print()
+                if len(minidoc_text) > len(minidoc_texts[dup_idx]):
+                    minidoc_texts[dup_idx] = minidoc_text
+                    minidocs_info_list[dup_idx] = (doc_cnt, entity_name)
+                    minidoc_seg_texts[dup_idx] = ' '.join(doc_seg_sents[s_idx_beg:s_idx_end])
+                continue
+
+            # print(minidoc_text)
+            minidoc_texts.append(minidoc_text)
+            minidocs_info_list.append((doc_cnt, entity_name))
+            minidoc_seg_text = ' '.join(doc_seg_sents[s_idx_beg:s_idx_end])
+            minidoc_seg_texts.append(minidoc_seg_text)
+            minidoc_cnt += 1
+        doc_cnt += 1
+        # print(doc_cnt)
+        # if minidoc_cnt >= 100:
+        #     break
+        if doc_cnt % 1000 == 0:
+            print(doc_cnt)
+    f.close()
+    f_seg.close()
+
+    for t in minidoc_texts:
+        fout_text.write('{}\n'.format(t))
+    for t in minidoc_seg_texts:
+        fout_seg_text.write('{}\n'.format(t))
+
+    return minidocs_info_list
+
+
+def __gen_minidocs_new():
+    entity_names = utils.read_lines_to_list(entity_names_file)
+
+    minidocs_info_list = list()
+    fout_text = open('d:/data/indec/docs-14k-minidocs-text-new.txt', 'w', encoding='utf-8', newline='\n')
+    fout_seg_text = open('d:/data/indec/docs-14k-minidocs-text-seg-new.txt', 'w', encoding='utf-8', newline='\n')
+    for i, entity_name in enumerate(entity_names):
+        info_list_tmp = __minidocs_for_name(entity_name, fout_text, fout_seg_text)
+        minidocs_info_list += info_list_tmp
+        if i == 1:
+            break
+
+    fout_text.close()
+    fout_seg_text.close()
+    minidocs_info_list = [(i, doc_id, name) for i, (doc_id, name) in enumerate(minidocs_info_list)]
+    with open('d:/data/indec/docs-14k-minidocs-info-new.txt', 'w', encoding='utf-8', newline='\n') as fout:
+        pd.DataFrame(minidocs_info_list, columns=['mdid', 'doc_id', 'entity_name']).to_csv(fout, index=False)
+
+
 src_doc_file = os.path.join(WC_DATADIR, 'bizmsg.csv')
 doc_file = os.path.join(WC_DATADIR, 'docs-14k.csv')
 # title_file = os.path.join(DATADIR, 'docs-14k-titles.csv')
@@ -304,6 +470,9 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # __gen_name_to_doc_file(entity_names_file, WC_DOC_INFO_NODUP_FILE, WC_NAME_DOC_ND_FILE)
 # __gen_docs_with_specific_name()
 # __sent_split()
+
 # __gen_minidocs()
 # __filter_duplicate_minidocs()
-__gen_minidocs_with_specific_name()
+# __gen_minidocs_with_specific_name()
+
+__gen_minidocs_new()

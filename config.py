@@ -6,6 +6,8 @@ QUORA_DATA_DIR = 'd:/data/quora'
 
 QUORA_DATA_FILE = os.path.join(QUORA_DATA_DIR, 'quora-user-qa.json')
 
+COMMON_CH_WORDS_FILE = os.path.join(WC_DATADIR, 'common-words.txt')
+
 WC_DF_FILE = os.path.join(WC_DATADIR, 'docs-14k-words-df.txt')
 WC_NAME_DOC_FILE = os.path.join(WC_DATADIR, 'name-doc.txt')
 WC_DOC_CONTENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-content.txt')
@@ -17,6 +19,7 @@ WC_SEG_DOC_CONTENT_NODUP_FILE = os.path.join(WC_DATADIR, 'docs-14k-content-seg-n
 WC_DF_ND_FILE = os.path.join(WC_DATADIR, 'docs-14k-words-df.txt')
 WC_NAME_DOC_ND_FILE = os.path.join(WC_DATADIR, 'name-doc-nd.txt')
 WC_ENTITY_NAMES_FILE = os.path.join(WC_DATADIR, 'entity-names.txt')
+WC_SEG_SENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-sents-seg.txt')
 WC_SENT_FILE = os.path.join(WC_DATADIR, 'docs-14k-sents.txt')
 WC_MINIDOC_INFO_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-info.txt')
 WC_MINIDOC_TEXT_FILE = os.path.join(WC_DATADIR, 'docs-14k-minidocs-text.txt')
