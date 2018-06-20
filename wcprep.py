@@ -446,14 +446,26 @@ def __gen_minidocs_new():
     for i, entity_name in enumerate(entity_names):
         info_list_tmp = __minidocs_for_name(entity_name, fout_text, fout_seg_text)
         minidocs_info_list += info_list_tmp
-        if i == 1:
-            break
+        # if i == 1:
+        #     break
 
     fout_text.close()
     fout_seg_text.close()
     minidocs_info_list = [(i, doc_id, name) for i, (doc_id, name) in enumerate(minidocs_info_list)]
     with open('d:/data/indec/docs-14k-minidocs-info-new.txt', 'w', encoding='utf-8', newline='\n') as fout:
         pd.DataFrame(minidocs_info_list, columns=['mdid', 'doc_id', 'entity_name']).to_csv(fout, index=False)
+
+
+def __segment_sentences():
+    import jieba
+
+    f = open(WC_SENT_FILE, encoding='utf-8')
+    fout = open('d:/data/indec/docs-14k-sents-seg-new.txt', 'w', encoding='utf-8', newline='\n')
+    for line in f:
+        words = jieba.cut(line)
+        fout.write(' '.join(words))
+    f.close()
+    fout.close()
 
 
 src_doc_file = os.path.join(WC_DATADIR, 'bizmsg.csv')
@@ -475,4 +487,6 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # __filter_duplicate_minidocs()
 # __gen_minidocs_with_specific_name()
 
-__gen_minidocs_new()
+__segment_sentences()
+
+# __gen_minidocs_new()

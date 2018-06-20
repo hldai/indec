@@ -2,20 +2,22 @@ import re
 
 
 def __seach_docs():
-    # 专车 服务 刘备 公司 汽车 司机 出行 车 管理 夏侯渊
-    words = ['演义', '三国', '15日', '京剧', '3月', '墓葬', '国家', '箭', '演员', '死后']
+    # words = ['钓鱼', '木', '故事', '运动', '协会', '消费者', '故里', '精彩', '文化', '老师']
+    words = ['孙权']
     f = open('d:/data/indec/docs-14k-minidocs-text-seg-new.txt', encoding='utf-8')
     for i, line in enumerate(f):
-        cnt = 0
         occur_words = list()
         for w in words:
             if w in line:
-                cnt += 1
                 occur_words.append(w)
         # print(cnt)
-        if cnt > 1:
+        # if len(occur_words) > 1:
+        if len(occur_words) > 0:
+            text = line.replace(' ', '')
+            # if '姜太公' not in text:
+            #     continue
             print(i, occur_words)
-            print(line.replace(' ', ''))
+            print(text)
     f.close()
 
 

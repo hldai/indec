@@ -230,8 +230,8 @@ def __topdmm_wc_minidocs(name, dst_vocab_file, dst_topics_file):
     all_doc_contents = utils.read_lines_to_list('d:/data/indec/docs-14k-minidocs-text-seg-new.txt')
     name_doc_dict = utils.load_entity_name_to_minidoc_file('d:/data/indec/docs-14k-minidocs-info-new.txt')
     doc_idxs = name_doc_dict[name]
-    # print(max(doc_idxs), len(all_doc_contents))
     contents = [all_doc_contents[idx] for idx in doc_idxs]
+    # print(max(doc_idxs), len(all_doc_contents))
     print(len(contents), 'docs')
 
     common_words = utils.read_lines_to_list(COMMON_CH_WORDS_FILE)
@@ -242,10 +242,16 @@ def __topdmm_wc_minidocs(name, dst_vocab_file, dst_topics_file):
     extra_exclude_words.add(name)
     # extra_exclude_words = {name}
     if name == '姜子牙':
-        extra_exclude_words = {'姜', '子牙'}
+        extra_exclude_words.add('姜')
+        extra_exclude_words.add('子牙')
+    if name == '夏侯惇':
+        extra_exclude_words.add('夏侯')
+        extra_exclude_words.add('惇')
     cv = textvectorizer.CountVectorizer((WC_DF_ND_FILE, 20, 700), remove_stopwords=True, words_exist=words_exist,
                                         extra_exclude_words=extra_exclude_words)
     print(len(cv.vocab), 'words in vocab')
+    # print('吃' in cv.vocab)
+    # exit()
     X = cv.get_vecs(contents, normalize=False)
     # D_codoc = utils.get_codoc_matrix(cv.vocab, contents)
 
@@ -268,8 +274,8 @@ def __run_with_wc():
 
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
     for ch_name, en_name in df.itertuples(False, None):
-        if en_name not in en_names_wanted:
-            continue
+        # if en_name not in en_names_wanted:
+        #     continue
         dst_vocab_file = os.path.join(WC_DATADIR, 'entity-data/{}_vocab.txt'.format(en_name))
         dst_topic_file = os.path.join(WC_DATADIR, 'entity-data/{}_topics.txt'.format(en_name))
         # __topdmm_wc(ch_name, dst_vocab_file, dst_topic_file)

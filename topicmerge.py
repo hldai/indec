@@ -264,35 +264,76 @@ def __check_topic_docs_wc():
     #     print(i, docs)
 
 
+def __get_topic_doc_cnts(topic_model, contents, mdid_docid_dict):
+    topic_minidoc_cnts = np.zeros(topic_model.n_topics, np.int32)
+    topic_docs_dict = {i: set() for i in range(topic_model.n_topics)}
+    cv = textvectorizer.CountVectorizer(topic_model.vocab)
+    X = cv.get_vecs(contents)
+    for i, x in enumerate(X):
+        probs = topic_model.topic_probs(x.indices, x.data)
+        tidx = np.argmax(probs)
+        topic_minidoc_cnts[tidx] += 1
+        topic_docs_dict[tidx].add(mdid_docid_dict[i])
+    return topic_minidoc_cnts, {i: len(topic_docs_dict[i]) for i in range(topic_model.n_topics)}
+
+
+def __get_mdid_to_docid_dict(minidoc_info_file):
+    df_minidocs = pd.read_csv(minidoc_info_file)
+    mdid_docid_dict = dict()
+    for mdid, docid, name in df_minidocs.itertuples(False, None):
+        mdid_docid_dict[mdid] = docid
+    return mdid_docid_dict
+
+
 def __wc_topic_merge_with_word_match():
     en_names_wanted = ['cc', 'hx', 'swk']
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
-    for ch_name, en_name in df.itertuples(False, None):
-        if en_name not in en_names_wanted:
-            continue
 
-        print(ch_name)
+    mdid_docid_dict = __get_mdid_to_docid_dict('d:/data/indec/docs-14k-minidocs-info-new.txt')
+
+    all_doc_contents = utils.read_lines_to_list('d:/data/indec/docs-14k-minidocs-text-seg-new.txt')
+    name_doc_dict = utils.load_entity_name_to_minidoc_file('d:/data/indec/docs-14k-minidocs-info-new.txt')
+
+    for ch_name, en_name in df.itertuples(False, None):
+        # if en_name not in en_names_wanted:
+        #     continue
+        doc_idxs = name_doc_dict[ch_name]
+        contents = [all_doc_contents[idx] for idx in doc_idxs]
+
+        print(ch_name, len(contents), 'docs')
         vocab_file = os.path.join(WC_DATADIR, 'entity-data/{}_vocab.txt'.format(en_name))
         topic_file = os.path.join(WC_DATADIR, 'entity-data/{}_topics.txt'.format(en_name))
         tm = TopicModel(vocab_file, topic_file)
         print(len(tm.vocab), 'words in vocab')
+
+        topic_minidoc_cnts, topic_doc_cnts = __get_topic_doc_cnts(tm, contents, mdid_docid_dict)
 
         n_topic_words = 10
         topic_words = list()
         for i, t in enumerate(tm.topics):
             idxs = np.argpartition(-t, range(n_topic_words))[:n_topic_words]
             topic_words.append(idxs)
-            print(i, ' '.join([tm.vocab[i] for i in idxs]))
+            # print(i, topic_minidoc_cnts[i], topic_doc_cnts[i], ' '.join([tm.vocab[i] for i in idxs]))
 
         comps = __merge_topics_by_topic_words(topic_words, tm.n_topics)
-        print(comps)
+        # print(comps)
+        mtopic_minidoc_cnts = dict()
+        for i, comp in enumerate(comps):
+            mtopic_minidoc_cnts[i] = sum([topic_minidoc_cnts[tidx] for tidx in comp])
+
+        tmp_tups = [(comp, mtopic_minidoc_cnts[i]) for i, comp in enumerate(comps)]
+        tmp_tups.sort(key=lambda x: -x[1])
+        comps = [comp for comp, cnt in tmp_tups]
+        mtopic_minidoc_cnts = [cnt for comp, cnt in tmp_tups]
+
         new_topics = __get_merged_topics(comps, tm.topics)
         n_topic_words = 10
         topic_words = list()
         for i, t in enumerate(new_topics):
             idxs = np.argpartition(-t, range(n_topic_words))[:n_topic_words]
             topic_words.append(idxs)
-            print(i, ' '.join([tm.vocab[i] for i in idxs]))
+            # print(i, mtopic_minidoc_cnts[i], ' '.join([tm.vocab[i] for i in idxs]))
+            print(mtopic_minidoc_cnts[i], ' '.join([tm.vocab[i] for i in idxs]))
         print()
 
         # break
