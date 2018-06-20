@@ -439,10 +439,11 @@ def __minidocs_for_name(entity_name, fout_text, fout_seg_text):
 
 def __gen_minidocs_new():
     entity_names = utils.read_lines_to_list(entity_names_file)
+    entity_names = ['白起']
 
     minidocs_info_list = list()
-    fout_text = open('d:/data/indec/docs-14k-minidocs-text-new.txt', 'w', encoding='utf-8', newline='\n')
-    fout_seg_text = open('d:/data/indec/docs-14k-minidocs-text-seg-new.txt', 'w', encoding='utf-8', newline='\n')
+    fout_text = open('d:/data/indec/docs-14k-minidocs-text.txt', 'w', encoding='utf-8', newline='\n')
+    fout_seg_text = open('d:/data/indec/docs-14k-minidocs-text-seg.txt', 'w', encoding='utf-8', newline='\n')
     for i, entity_name in enumerate(entity_names):
         info_list_tmp = __minidocs_for_name(entity_name, fout_text, fout_seg_text)
         minidocs_info_list += info_list_tmp
@@ -452,7 +453,7 @@ def __gen_minidocs_new():
     fout_text.close()
     fout_seg_text.close()
     minidocs_info_list = [(i, doc_id, name) for i, (doc_id, name) in enumerate(minidocs_info_list)]
-    with open('d:/data/indec/docs-14k-minidocs-info-new.txt', 'w', encoding='utf-8', newline='\n') as fout:
+    with open('d:/data/indec/docs-14k-minidocs-info.txt', 'w', encoding='utf-8', newline='\n') as fout:
         pd.DataFrame(minidocs_info_list, columns=['mdid', 'doc_id', 'entity_name']).to_csv(fout, index=False)
 
 
@@ -487,6 +488,6 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # __filter_duplicate_minidocs()
 # __gen_minidocs_with_specific_name()
 
-__segment_sentences()
+# __segment_sentences()
 
-# __gen_minidocs_new()
+__gen_minidocs_new()
