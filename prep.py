@@ -70,8 +70,10 @@ def __ambig_names_from_wiki(filename, dst_file):
             if n_used < 50 or len(cur_tups) < 2 or (cur_name.endswith('年') and cur_name.startswith('2')):
                 eligible = False
 
-            if len(cur_name) < 1 or not cur_name[0] in {'李', '王', '张', '刘', '陈', '杨', '赵'}:
+            if not cur_name.isupper():
                 eligible = False
+            # if len(cur_name) < 1 or not cur_name[0] in {'李', '王', '张', '刘', '陈', '杨', '赵'}:
+            #     eligible = False
 
             if eligible:
                 for (name, target), cnt in cur_tups:
