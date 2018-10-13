@@ -4,7 +4,8 @@ import json
 import pandas as pd
 from config import *
 import textvectorizer
-import utils
+# import utils
+from utils import commonutils, wcdatautils
 from sklearn.metrics.pairwise import cosine_similarity
 
 
@@ -64,8 +65,8 @@ def __gen_docs_with_specific_name():
         if en_name != 'xhd':
             continue
 
-        all_doc_contents = utils.read_lines_to_list(WC_DOC_CONTENT_NODUP_FILE)
-        name_doc_dict = utils.load_entity_name_to_doc_file(WC_NAME_DOC_ND_FILE)
+        all_doc_contents = commonutils.read_lines_to_list(WC_DOC_CONTENT_NODUP_FILE)
+        name_doc_dict = wcdatautils.load_entity_name_to_doc_file(WC_NAME_DOC_ND_FILE)
         doc_idxs = name_doc_dict[ch_name]
         contents = [all_doc_contents[idx] for idx in doc_idxs]
         print(len(contents), 'docs')
@@ -79,12 +80,12 @@ def __gen_docs_with_specific_name():
 
 def __gen_minidocs_with_specific_name():
     df = pd.read_csv(WC_ENTITY_NAMES_FILE, header=None)
-    name_doc_dict = utils.load_entity_name_to_minidoc_file(WC_MINIDOC_INFO_NODUP_FILE)
+    name_doc_dict = wcdatautils.load_entity_name_to_minidoc_file(WC_MINIDOC_INFO_NODUP_FILE)
     for ch_name, en_name in df.itertuples(False, None):
         if en_name != 'swk':
             continue
 
-        all_doc_contents = utils.read_lines_to_list(WC_MINIDOC_TEXT_NODUP_FILE)
+        all_doc_contents = commonutils.read_lines_to_list(WC_MINIDOC_TEXT_NODUP_FILE)
         doc_idxs = name_doc_dict[ch_name]
         contents = [all_doc_contents[idx] for idx in doc_idxs]
         print(len(contents), 'docs')
@@ -97,7 +98,7 @@ def __gen_minidocs_with_specific_name():
 
 
 def __filter_duplicate_docs():
-    all_doc_contents = utils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
+    all_doc_contents = commonutils.read_lines_to_list(WC_SEG_DOC_CONTENT_FILE)
     cv = textvectorizer.CountVectorizer((WC_DF_FILE, 100, 2000), remove_stopwords=True)
     print(cv.n_words, 'words in vocab')
     X = cv.get_vecs(all_doc_contents)
@@ -133,8 +134,8 @@ def __filter_duplicate_docs():
     with open(WC_DOC_INFO_NODUP_FILE, 'w', encoding='utf-8', newline='\n') as fout:
         df_fil.to_csv(fout, index=False)
 
-    utils.remove_lines(WC_DOC_CONTENT_FILE, dup_docs, WC_DOC_CONTENT_NODUP_FILE)
-    utils.remove_lines(WC_SEG_DOC_CONTENT_FILE, dup_docs, WC_SEG_DOC_CONTENT_NODUP_FILE)
+    commonutils.remove_lines(WC_DOC_CONTENT_FILE, dup_docs, WC_DOC_CONTENT_NODUP_FILE)
+    commonutils.remove_lines(WC_SEG_DOC_CONTENT_FILE, dup_docs, WC_SEG_DOC_CONTENT_NODUP_FILE)
 
 
 def split_sentences(text):
@@ -191,7 +192,7 @@ def __read_doc_sents(fin):
 
 
 def __gen_minidocs():
-    entity_names = utils.read_lines_to_list(entity_names_file)
+    entity_names = commonutils.read_lines_to_list(entity_names_file)
     f = open(WC_SENT_FILE, encoding='utf-8')
     fout_text = open(WC_MINIDOC_TEXT_FILE, 'w', encoding='utf-8', newline='\n')
     n_context_sents = 2
@@ -248,7 +249,7 @@ def __gen_minidocs():
 def __filter_duplicate_minidocs():
     df_minidocs = pd.read_csv(WC_MINIDOC_INFO_FILE)
     # print(df_minidocs.head())
-    all_doc_contents = utils.read_lines_to_list(WC_MINIDOC_TEXT_SEG_FILE)
+    all_doc_contents = commonutils.read_lines_to_list(WC_MINIDOC_TEXT_SEG_FILE)
     cv = textvectorizer.CountVectorizer((WC_DF_FILE, 100, 2000), remove_stopwords=True)
     print(cv.n_words, 'words in vocab')
     X = cv.get_vecs(all_doc_contents)
@@ -288,8 +289,8 @@ def __filter_duplicate_minidocs():
     with open(WC_MINIDOC_INFO_NODUP_FILE, 'w', encoding='utf-8', newline='\n') as fout:
         df_fil.to_csv(fout, index=False)
 
-    utils.remove_lines(WC_MINIDOC_TEXT_FILE, dup_docs, WC_MINIDOC_TEXT_NODUP_FILE)
-    utils.remove_lines(WC_MINIDOC_TEXT_SEG_FILE, dup_docs, WC_MINIDOC_TEXT_SEG_NODUP_FILE)
+    commonutils.remove_lines(WC_MINIDOC_TEXT_FILE, dup_docs, WC_MINIDOC_TEXT_NODUP_FILE)
+    commonutils.remove_lines(WC_MINIDOC_TEXT_SEG_FILE, dup_docs, WC_MINIDOC_TEXT_SEG_NODUP_FILE)
 
 
 def __sent_visited_tfidf(sent_tfidf, vst_sent_tfidf_list):
@@ -438,7 +439,7 @@ def __minidocs_for_name(entity_name, fout_text, fout_seg_text):
 
 
 def __gen_minidocs_new():
-    entity_names = utils.read_lines_to_list(entity_names_file)
+    entity_names = commonutils.read_lines_to_list(entity_names_file)
     entity_names = ['白起']
 
     minidocs_info_list = list()
@@ -476,6 +477,9 @@ content_file = os.path.join(WC_DATADIR, 'docs-14k-content.txt')
 entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 # name_doc_file = os.path.join(DATADIR, 'name-doc.txt')
 
+src_doc_file_sep = os.path.join(WC_DATADIR, 'title_content_new_entities-09-08.csv')
+doc_file_sep = os.path.join(WC_DATADIR, 'docs-0908.scv')
+
 # __fix_src_data()
 # __gen_sep_content_file(doc_file, content_file)
 # __filter_duplicate_docs()
@@ -490,4 +494,6 @@ entity_names_file = os.path.join(WC_DATADIR, 'entities.txt')
 
 # __segment_sentences()
 
-__gen_minidocs_new()
+# __gen_minidocs_new()
+
+wcdatautils.fix_src_data_sep(src_doc_file_sep, doc_file_sep)

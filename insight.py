@@ -1,4 +1,5 @@
 import re
+import utils
 
 
 SUB_SENT_SEG_CHARS = '，？。.,、‘’“”、'
@@ -64,5 +65,27 @@ def __seach_docs():
     f.close()
 
 
-__seach_docs()
+def __check_data():
+    docs_file = 'd:/data/indec/title_content_new_entities-09-08.csv'
+    names_file = 'd:/data/indec/ambig-names-from-wiki-wz-dhl.txt'
+    names = utils.read_lines_to_list(names_file)
 
+    name_docs_dict = {n: list() for n in names}
+    f = open(docs_file, encoding='utf-8')
+    next(f)
+    for i, line in enumerate(f):
+        p = line.find(',')
+        title, content = line[:p], line[p + 1:]
+        for name in names:
+            if name in content:
+                name_docs_dict[name].append(i)
+
+        if '王刚' in content:
+            print(content)
+    f.close()
+    # for name, docs in name_docs_dict.items():
+    #     print(name, len(docs))
+
+
+# __seach_docs()
+__check_data()
